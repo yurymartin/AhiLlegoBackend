@@ -1,0 +1,58 @@
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+
+import { UserSession } from '../../schemas/userSession.schema';
+import { User } from './../../../users/schemas/user.schema';
+import {
+  CreateUserSesionDto,
+  UpdateUserSesionDto,
+} from '../../dtos/userSesion.dto';
+
+@Injectable()
+export class UserSessionService {
+  constructor(
+    @InjectModel(UserSession.name)
+    private readonly userSessionModel: Model<UserSession>,
+    @InjectModel(User.name) private readonly userModel: Model<User>,
+  ) {}
+
+  async findOne(id: string): Promise<UserSession> {
+    const userSession = await this.userSessionModel.findOne({ _id: id }).exec();
+    return userSession;
+  }
+
+  async findOnebyUser(userId: string): Promise<UserSession> {
+    const userSession = await this.userSessionModel
+      .findOne({ user: userId })
+      .exec();
+
+    return userSession;
+  }
+
+  async create(data: CreateUserSesionDto): Promise<UserSession> {
+    const newSession = new this.userSessionModel(data);
+    let sessionSave = await newSession.save();
+    if (!sessionSave) {
+      throw new InternalServerErrorException('Error al registrar la session');
+    }
+    return sessionSave;
+  }
+
+  async update(id: string, data: UpdateUserSesionDto): Promise<UserSession> {
+    let sessionUpdate = await this.userSessionModel.findByIdAndUpdate(
+      id,
+      data,
+      { new: true },
+    );
+    let newSession = await sessionUpdate.save();
+    if (!newSession) {
+      throw new InternalServerErrorException('Error al actualizar la session');
+    }
+    return newSession;
+  }
+}
