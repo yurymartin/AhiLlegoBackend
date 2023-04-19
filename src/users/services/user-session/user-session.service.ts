@@ -28,7 +28,7 @@ export class UserSessionService {
 
   async findOnebyUser(userId: string): Promise<UserSession> {
     const userSession = await this.userSessionModel
-      .findOne({ user: userId })
+      .findOne({ userId: userId })
       .exec();
 
     return userSession;

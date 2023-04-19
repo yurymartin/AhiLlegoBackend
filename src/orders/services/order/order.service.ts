@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -53,6 +54,8 @@ export class OrderService {
     private readonly addressService: AddressService,
     private readonly pushNotificationService: PushNotificationService,
   ) {}
+
+  private readonly logger = new Logger(OrderService.name);
 
   async findAll() {
     let orders = await this.orderModel
@@ -177,6 +180,7 @@ export class OrderService {
   }
 
   async create(data: CreateOrderDto) {
+    this.logger.log('[REQUEST ORDER] =>', data);
     let company = await this.companyService.findOne(data.companyId);
     let typePay = await this.typePayService.findOne(String(data.typePayId));
     let user = await this.userService.findOne(String(data.userId));
@@ -290,7 +294,7 @@ export class OrderService {
     } catch (error) {
       console.log('ERROR PUSH =>', error);
     }
-
+    this.logger.log('[RESPONSE ORDER] =>', orderResult);
     return orderResult;
   }
 

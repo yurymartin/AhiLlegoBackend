@@ -18,7 +18,6 @@ import {
 import { CreateDeliveryManDto } from '../../dtos/deliveryMan.dto';
 import { BcryptService } from '../bcrypt/bcrypt.service';
 import { CreateLoginDeliveryManDto } from '../../dtos/deliveryManLogin.dto';
-import { UserSession } from 'src/users/schemas/userSession.schema';
 
 @Injectable()
 export class AuthService {
@@ -32,56 +31,50 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   async loginDeliveryMan(data: CreateLoginDeliveryManDto) {
-    try {
-      let user = await this.userService.findOneByDocumentNumber(
-        data.documentNumber,
-      );
-      if (!user || String(user.profileId) !== PROFILE_DELIVERY_MAN_ID) {
-        throw new NotFoundException('No existe el usuario repartidor');
-      }
-      if (!user.status) {
-        throw new BadRequestException('El usuario se encuentra inactivo');
-      }
-      let validatePassword = this.bcryptService.validatePassword(
-        String(data.password),
-        String(user.password),
-      );
-      if (!validatePassword) {
-        throw new BadRequestException('Credenciales Incorrectas');
-      }
-      let tokenJwt = this.generateJWT(user);
-      let userSession = await this.userSessionService.findOnebyUser(user._id);
-      let newSession: any = null;
-      let body: any = {
-        token: tokenJwt,
-        tokenDevice: data.tokenDevice || '',
-        status: true,
-      };
-      if (userSession) {
-        newSession = await this.userSessionService.update(
-          userSession._id,
-          body,
-        );
-      } else {
-        body.userId = user._id;
-        newSession = await this.userSessionService.create(body);
-      }
-      let result = {
-        token: tokenJwt,
-        id: user._id,
-        email: user.email,
-        phone: user.phone,
-      };
-      return result;
-    } catch (error) {
-      this.logger.error(error);
+    this.logger.log('[loginDeliveryMan DATA] =>', data);
+    let user = await this.userService.findOneByDocumentNumber(
+      data.documentNumber,
+    );
+    if (!user || String(user.profileId) !== PROFILE_DELIVERY_MAN_ID) {
+      throw new NotFoundException('No existe el usuario repartidor');
     }
+    if (!user.status) {
+      throw new BadRequestException('El usuario se encuentra inactivo');
+    }
+    let validatePassword = this.bcryptService.validatePassword(
+      String(data.password),
+      String(user.password),
+    );
+    if (!validatePassword) {
+      throw new BadRequestException('Credenciales Incorrectas');
+    }
+    let tokenJwt = this.generateJWT(user);
+    let userSession = await this.userSessionService.findOnebyUser(user._id);
+    let newSession: any = null;
+    let body: any = {
+      token: tokenJwt,
+      tokenDevice: data.tokenDevice || '',
+      status: true,
+    };
+    if (userSession) {
+      newSession = await this.userSessionService.update(userSession._id, body);
+    } else {
+      body.userId = user._id;
+      newSession = await this.userSessionService.create(body);
+    }
+    return newSession;
   }
 
   async signInCustomer(data: CreateSignInCustomerDto): Promise<any> {
+    this.logger.log('[signInCustomer DATA] =>', data);
     let user = await this.userService.findOneByPhone(data.phone);
     if (!user) {
       throw new NotFoundException(`El usuario no existe`);
+    }
+    if (!user.status) {
+      throw new BadRequestException(
+        'Tu cuenta se encuentra en estado inactivo. Porfavor comunicarte con soporte Gracias',
+      );
     }
     //*create a new user_session
     let tokenJwt = this.generateJWT(user);
@@ -91,6 +84,7 @@ export class AuthService {
       status: true,
     };
     let userSession = await this.userSessionService.findOnebyUser(user._id);
+    console.log('[userSession] =>', userSession);
     let newSession: any = null;
     if (userSession) {
       newSession = await this.userSessionService.update(userSession._id, body);
@@ -103,6 +97,7 @@ export class AuthService {
 
   async createCustomer(data: CreateRegisterCustomerDto): Promise<any> {
     //* create a new user
+    this.logger.log('[createCustomer DATA] =>', data);
     data.profileId = PROFILE_CUSTOMER_ID;
     let userSave = await this.userService.create(data);
 
@@ -138,6 +133,7 @@ export class AuthService {
     }
     return null;
   }
+
   generateJWT(user: User) {
     const payload: PayloadToken = {
       profileId: user.profileId._id,
