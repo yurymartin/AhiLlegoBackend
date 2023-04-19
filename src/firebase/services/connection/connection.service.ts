@@ -11,6 +11,7 @@ export class ConnectionService {
       const serviceAccount = this.configService.get<string>(
         'FIREBASE_CREDENTIALS',
       );
+
       const app = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });

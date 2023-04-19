@@ -8,7 +8,9 @@ import {
   STATUS_ORDER_PENDING_ID,
   STATUS_ORDER_PROCESSING_ID,
   STATUS_ORDER_CANCELLED_ID,
+  PROFILE_DELIVERY_MAN_ID,
 } from '../../../common/constants';
+import { MulticastMessage } from 'firebase-admin/lib/messaging/messaging-api';
 
 const ICON_PUSH = 'assets_images_logo_circle';
 
@@ -60,6 +62,55 @@ export class PushNotificationService {
       }
     } catch (ex) {
       console.log('Error sending message:', ex);
+    }
+  }
+
+  async sendToDeliveriesMan() {
+    try {
+      let usersSession = await this.userSessionService.findByProfile(
+        PROFILE_DELIVERY_MAN_ID,
+      );
+      let tokens = [];
+      if (usersSession && usersSession.length > 0) {
+        for (const userSession of usersSession) {
+          if (userSession && userSession.tokenDevice) {
+            tokens.push(userSession.tokenDevice);
+          }
+        }
+      }
+      if (tokens && tokens.length > 0) {
+        let app = this.connectionService.initializeFirebase();
+        const messages: MulticastMessage = {
+          notification: {
+            title: '¡Nuevo pedido disponible!',
+            body: '¡Atención, repartidor! Un nuevo pedido acaba de llegar a la aplicación de delivery Ahí-Llego Repartidor. Ingresa a la app de para aceptar el pedido y conocer la dirección y los detalles del pedido.',
+          },
+          android: {
+            priority: 'high',
+            notification: {
+              title: '¡Nuevo pedido disponible!',
+              body: '¡Atención, repartidor! Un nuevo pedido acaba de llegar a la aplicación de delivery Ahí-Llego Repartidor. Ingresa a la app de para aceptar el pedido y conocer la dirección y los detalles del pedido.',
+              sound: 'default',
+              color: '#01ffff',
+              icon: ICON_PUSH,
+            },
+          },
+          tokens: tokens,
+        };
+
+        let response = await admin.messaging().sendMulticast(messages);
+        if (response) {
+          console.log('Successfully sent message:', response);
+        } else {
+          console.log('Error sending message:');
+        }
+        await app.delete();
+        return response;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.log('[ERROR sendToDeliveriesMan] => ', error);
     }
   }
 

@@ -284,6 +284,13 @@ export class OrderService {
       { new: true },
     );
 
+    try {
+      let sendPushs = await this.pushNotificationService.sendToDeliveriesMan();
+      console.log('[sendPushs DeliveryMan] =>', sendPushs);
+    } catch (error) {
+      console.log('ERROR PUSH =>', error);
+    }
+
     return orderResult;
   }
 
@@ -346,10 +353,8 @@ export class OrderService {
     }
 
     let deliveryMan = await this.userService.findOne(order.deliveryManId);
-
     let status = await this.statusOrderService.findOne(data.statusOrderId);
     bodyUpdate.statusOrderId = status._id;
-
     let client = await this.userService.findOne(String(order.userId));
 
     if (String(data.statusOrderId) === STATUS_ORDER_FINALIZED_ID) {
@@ -361,8 +366,17 @@ export class OrderService {
       bodyUpdate.dateDelivery = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
     }
 
-    if (String(data.statusOrderId) === STATUS_ORDER_CANCELLED_ID) {
+    if (String(order.statusOrderId._id) === STATUS_ORDER_CANCELLED_ID) {
       throw new BadRequestException(`El pedido se encuentra cancelado.`);
+    }
+
+    if (
+      data.statusOrderId === STATUS_ORDER_CANCELLED_ID &&
+      String(order.statusOrderId._id) !== STATUS_ORDER_PENDING_ID
+    ) {
+      throw new BadRequestException(
+        `El pedido ya fue confirmado y se encuentra en proceso de entrega por este motivo no se puede cancelar. Gracias por entender`,
+      );
     }
 
     let ordetUpdate = await this.orderModel.findByIdAndUpdate(
@@ -373,11 +387,13 @@ export class OrderService {
     if (!ordetUpdate) {
       throw new InternalServerErrorException('Error al actualizar  pedido');
     }
+
     await this.pushNotificationService.sendPushNotificationToDeviceByStatus(
       client,
       deliveryMan,
       data.statusOrderId,
     );
+
     return ordetUpdate;
   }
 

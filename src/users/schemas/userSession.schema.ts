@@ -17,7 +17,7 @@ export class UserSession extends Document {
   status: boolean;
 
   @Prop({ type: Types.ObjectId, ref: User.name, required: true })
-  user: User | Types.ObjectId;
+  userId: User | Types.ObjectId;
 }
 
 export const UserSessionSchema = SchemaFactory.createForClass(UserSession);

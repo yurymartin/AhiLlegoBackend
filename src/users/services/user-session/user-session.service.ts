@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import { UserSession } from '../../schemas/userSession.schema';
 import { User } from './../../../users/schemas/user.schema';
@@ -32,6 +32,13 @@ export class UserSessionService {
       .exec();
 
     return userSession;
+  }
+
+  async findByProfile(profileId: string): Promise<UserSession[]> {
+    const userSessions = await this.userSessionModel
+      .find({ 'user.profileId': new Types.ObjectId(profileId) })
+      .exec();
+    return userSessions;
   }
 
   async create(data: CreateUserSesionDto): Promise<UserSession> {

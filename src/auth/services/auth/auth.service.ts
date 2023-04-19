@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -17,6 +18,7 @@ import {
 import { CreateDeliveryManDto } from '../../dtos/deliveryMan.dto';
 import { BcryptService } from '../bcrypt/bcrypt.service';
 import { CreateLoginDeliveryManDto } from '../../dtos/deliveryManLogin.dto';
+import { UserSession } from 'src/users/schemas/userSession.schema';
 
 @Injectable()
 export class AuthService {
@@ -27,44 +29,53 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
+  private readonly logger = new Logger(AuthService.name);
+
   async loginDeliveryMan(data: CreateLoginDeliveryManDto) {
-    let user = await this.userService.findOneByDocumentNumber(
-      data.documentNumber,
-    );
-    if (!user || String(user.profileId) !== PROFILE_DELIVERY_MAN_ID) {
-      throw new NotFoundException('No existe el usuario repartidor');
+    try {
+      let user = await this.userService.findOneByDocumentNumber(
+        data.documentNumber,
+      );
+      if (!user || String(user.profileId) !== PROFILE_DELIVERY_MAN_ID) {
+        throw new NotFoundException('No existe el usuario repartidor');
+      }
+      if (!user.status) {
+        throw new BadRequestException('El usuario se encuentra inactivo');
+      }
+      let validatePassword = this.bcryptService.validatePassword(
+        String(data.password),
+        String(user.password),
+      );
+      if (!validatePassword) {
+        throw new BadRequestException('Credenciales Incorrectas');
+      }
+      let tokenJwt = this.generateJWT(user);
+      let userSession = await this.userSessionService.findOnebyUser(user._id);
+      let newSession: any = null;
+      let body: any = {
+        token: tokenJwt,
+        tokenDevice: data.tokenDevice || '',
+        status: true,
+      };
+      if (userSession) {
+        newSession = await this.userSessionService.update(
+          userSession._id,
+          body,
+        );
+      } else {
+        body.userId = user._id;
+        newSession = await this.userSessionService.create(body);
+      }
+      let result = {
+        token: tokenJwt,
+        id: user._id,
+        email: user.email,
+        phone: user.phone,
+      };
+      return result;
+    } catch (error) {
+      this.logger.error(error);
     }
-    if (!user.status) {
-      throw new BadRequestException('El usuario se encuentra inactivo');
-    }
-    let validatePassword = this.bcryptService.validatePassword(
-      String(data.password),
-      String(user.password),
-    );
-    if (!validatePassword) {
-      throw new BadRequestException('Credenciales Incorrectas');
-    }
-    let tokenJwt = this.generateJWT(user);
-    let userSession = await this.userSessionService.findOnebyUser(user._id);
-    let newSession: any = null;
-    let body: any = {
-      token: tokenJwt,
-      tokenDevice: data.tokenDevice || '',
-      status: true,
-    };
-    if (userSession) {
-      newSession = await this.userSessionService.update(userSession._id, body);
-    } else {
-      body.user = user._id;
-      newSession = await this.userSessionService.create(body);
-    }
-    let result = {
-      token: tokenJwt,
-      id: user._id,
-      email: user.email,
-      phone: user.phone,
-    };
-    return result;
   }
 
   async signInCustomer(data: CreateSignInCustomerDto): Promise<any> {
@@ -84,7 +95,7 @@ export class AuthService {
     if (userSession) {
       newSession = await this.userSessionService.update(userSession._id, body);
     } else {
-      body.user = user._id;
+      body.userId = user._id;
       newSession = await this.userSessionService.create(body);
     }
     return newSession;
@@ -106,7 +117,7 @@ export class AuthService {
     if (userSession) {
       newSession = await this.userSessionService.update(userSession._id, body);
     } else {
-      body.user = userSave._id;
+      body.userId = userSave._id;
       newSession = await this.userSessionService.create(body);
     }
     return newSession;
