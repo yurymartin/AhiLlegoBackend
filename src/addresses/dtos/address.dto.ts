@@ -38,9 +38,9 @@ export class CreateAddressDto {
   readonly address: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @ApiProperty()
-  readonly reference: string;
+  readonly reference: string = null;
 
   @IsObject()
   @IsOptional()

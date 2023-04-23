@@ -13,10 +13,10 @@ export class User extends Document {
   @Prop({ default: null })
   documentNumber: number;
 
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true })
   surname: string;
 
   @Prop({ required: true })

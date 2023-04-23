@@ -126,27 +126,28 @@ export class PushNotificationService {
         break;
       case STATUS_ORDER_PROCESSING_ID:
         result.title = 'Confirmación de tu pedido';
-        result.message = `Hola, queremos informarte que tu pedido ha sido confirmado y será entregado pronto. Nuestro repartidor ${deliveryMan.name} se encuentra en camino para recoger tu pedido. Por favor, mantente pendiente de tu teléfono. ¡Gracias por elegir nuestro servicio de delivery!`;
+        result.message = `Hola, tu pedido ha sido confirmado. Nuestro repartidor ${deliveryMan.name} se encuentra en camino para recoger tu pedido. Por favor, mantente pendiente de tu teléfono.`;
         break;
       case STATUS_ORDER_ON_ROUTE_ID:
         result.title = 'Tu pedido está en camino';
         result.message =
-          '¡Hola! Queremos informarte que tu pedido ahora se encuentra en camino. Por favor, mantente pendiente de tu teléfono. ¡Gracias por elegir nuestro servicio de delivery!';
+          '¡Hola! Queremos informarte que tu pedido se encuentra en camino. Por favor, mantente pendiente de tu teléfono.';
         break;
       case STATUS_ORDER_FINALIZED_ID:
         result.title = 'Tu pedido ha sido entregado';
+        // result.message =
+        //   '¡Felicidades! Tu pedido ha sido entregado satisfactoriamente. Esperamos que disfrutes de tu pedido y Si gustas porfavor podrias calificar la atención del repartidor. ¡Gracias por elegir nuestro servicio de delivery!';
         result.message =
-          '¡Felicidades! Tu pedido ha sido entregado satisfactoriamente. Esperamos que disfrutes de tu pedido y Si gustas porfavor podrias calificar la atención del repartidor en la parte de historial ¡Gracias por elegir nuestro servicio de delivery!';
+          '¡Felicidades! Tu pedido ha sido entregado satisfactoriamente. Esperamos que disfrutes de tu pedido. ¡Gracias por elegir nuestro servicio de delivery ahi-llego!';
         break;
       case STATUS_ORDER_CANCELLED_ID:
         result.title = 'Pedido cancelado';
         result.message =
           'Lamentablemente, tu pedido ha sido cancelado. Te pedimos disculpas por cualquier inconveniente que esto pueda haber causado. Si tienes alguna pregunta o necesitas ayuda adicional, no dudes en contactarnos. ¡Gracias por elegir nuestro servicio de delivery';
         break;
-
       default:
         result.title = 'Confirmación de tu pedido';
-        result.message = `Hola, queremos informarte que tu pedido ha sido confirmado y será entregado pronto. Nuestro repartidor ${deliveryMan.name} se encuentra en camino para recoger tu pedido. Por favor, mantente pendiente de tu teléfono. ¡Gracias por elegir nuestro servicio de delivery!`;
+        result.message = `Hola, tu pedido ha sido confirmado. Nuestro repartidor ${deliveryMan.name} se encuentra en camino para recoger tu pedido. Por favor, mantente pendiente de tu teléfono.`;
         break;
     }
     return result;

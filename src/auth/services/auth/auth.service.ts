@@ -55,6 +55,7 @@ export class AuthService {
       token: tokenJwt,
       tokenDevice: data.tokenDevice || '',
       status: true,
+      profileId: user.profileId,
     };
     if (userSession) {
       newSession = await this.userSessionService.update(userSession._id, body);
@@ -82,9 +83,9 @@ export class AuthService {
       token: tokenJwt,
       tokenDevice: data.tokenDevice || '',
       status: true,
+      profileId: user.profileId,
     };
     let userSession = await this.userSessionService.findOnebyUser(user._id);
-    console.log('[userSession] =>', userSession);
     let newSession: any = null;
     if (userSession) {
       newSession = await this.userSessionService.update(userSession._id, body);
@@ -98,6 +99,12 @@ export class AuthService {
   async createCustomer(data: CreateRegisterCustomerDto): Promise<any> {
     //* create a new user
     this.logger.log('[createCustomer DATA] =>', data);
+    let user = await this.userService.findOneByPhone(data.phone);
+    if (user) {
+      throw new BadRequestException(
+        'Tu número de celular ya se encuentra registrado, Ya puedes realizar pedidos',
+      );
+    }
     data.profileId = PROFILE_CUSTOMER_ID;
     let userSave = await this.userService.create(data);
 
@@ -106,6 +113,7 @@ export class AuthService {
     let body: any = {
       token: tokenJwt,
       tokenDevice: data.tokenDevice || '',
+      profileId: userSave.profileId,
     };
     let userSession = await this.userSessionService.findOnebyUser(userSave._id);
     let newSession: any = null;

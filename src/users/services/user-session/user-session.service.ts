@@ -36,7 +36,7 @@ export class UserSessionService {
 
   async findByProfile(profileId: string): Promise<UserSession[]> {
     const userSessions = await this.userSessionModel
-      .find({ 'user.profileId': new Types.ObjectId(profileId) })
+      .find({ profileId: new Types.ObjectId(profileId) })
       .exec();
     return userSessions;
   }

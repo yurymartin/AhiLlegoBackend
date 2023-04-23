@@ -31,7 +31,7 @@ export class Address extends Document {
   @Prop({ required: true })
   address: string;
 
-  @Prop({ required: true })
+  @Prop({ default: null })
   reference: string;
 
   @Prop({ default: null })
