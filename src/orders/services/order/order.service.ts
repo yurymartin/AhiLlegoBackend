@@ -104,11 +104,8 @@ export class OrderService {
     let orders = await this.orderModel
       .find({ userId: user._id })
       .sort({ date: -1 })
-      .populate(
-        'companyId statusOrderId deliveryManId typePayId',
-        '-createdAt -updatedAt -__v',
-      )
-      .select('-createdAt -updatedAt -__v')
+      .populate('companyId statusOrderId deliveryManId typePayId', '-__v')
+      .select('-__v')
       .exec();
     return orders;
   }
