@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { addMinutes, format, differenceInMinutes } from 'date-fns';
@@ -12,7 +13,7 @@ import { random } from './../../../common/helper/utils';
 import { CreateOtpDto } from './../../dtos/otp.dto';
 import { UserService } from '../../../users/services/user/user.service';
 
-const TIME_LIMIT_EXPIRATION_SMS = 3;
+const TIME_LIMIT_EXPIRATION_SMS = 5;
 
 @Injectable()
 export class OtpService {
@@ -21,9 +22,15 @@ export class OtpService {
     private userService: UserService,
   ) {}
 
+  private readonly logger = new Logger(OtpService.name);
+
   async generate(data: CreateOtpDto) {
+    this.logger.log('[DATA_GENERATE_OTP] =>', data);
     let code = random(4);
-    let expired = format(addMinutes(new Date(), 3), 'yyyy-MM-dd HH:mm:ss');
+    let expired = format(
+      addMinutes(new Date(), TIME_LIMIT_EXPIRATION_SMS),
+      'yyyy-MM-dd HH:mm:ss',
+    );
     let otpSearch = await this.otpModel.findOne({ phone: data.phone });
     let newOtpGenerated = {
       code,
@@ -56,7 +63,8 @@ export class OtpService {
     return newOtpGenerate;
   }
 
-  async verification(data: CreateOtpDto) {
+  async validate(data: CreateOtpDto) {
+    this.logger.log('[DATA_VALIDATE_OTP] =>', data);
     const { code, phone } = data;
     let userRegisted: boolean = false;
     let resultValidateCode: boolean = false;

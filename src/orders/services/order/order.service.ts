@@ -320,7 +320,6 @@ export class OrderService {
 
     try {
       let sendPushs = await this.pushNotificationService.sendToDeliveriesMan();
-      console.log('[sendPushs DeliveryMan] =>', sendPushs);
     } catch (error) {
       console.log('ERROR PUSH =>', error);
     }
@@ -422,11 +421,13 @@ export class OrderService {
       throw new InternalServerErrorException('Error al actualizar  pedido');
     }
 
-    await this.pushNotificationService.sendPushNotificationToDeviceByStatus(
-      client,
-      deliveryMan,
-      data.statusOrderId,
-    );
+    if (String(data.statusOrderId) !== STATUS_ORDER_FINALIZED_ID) {
+      await this.pushNotificationService.sendPushNotificationToDeviceByStatus(
+        client,
+        deliveryMan,
+        data.statusOrderId,
+      );
+    }
 
     return ordetUpdate;
   }
@@ -447,6 +448,8 @@ export class OrderService {
       { checkDeliveredClient: true },
       { new: true },
     );
+
+    await this.pushNotificationService.sendToDeviceByConfirmClient(user);
 
     if (!ordetUpdate) {
       throw new InternalServerErrorException('Error al actualizar  pedido');

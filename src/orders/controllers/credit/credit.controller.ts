@@ -16,8 +16,8 @@ export class CreditController {
     return await this.creditService.create(payload);
   }
 
-  @Post('/code')
-  async createByCode(@Body() payload: CreateCreditDto) {
-    return await this.creditService.createByCode(payload);
+  @Post('/validate/discount-code')
+  async validateCode(@Body() payload: CreateCreditDto) {
+    return await this.creditService.validateDiscountCode(payload);
   }
 }

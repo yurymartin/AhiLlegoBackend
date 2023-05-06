@@ -9,6 +9,7 @@ import { CreateCreditDto } from '../../dtos/credit.dto';
 import { Credit } from '../../schemas/credit.schema';
 import { DiscountCodeService } from '../discount-code/discount-code.service';
 import { UserService } from '../../../users/services/user/user.service';
+import { differenceInDays, format } from 'date-fns';
 
 @Injectable()
 export class CreditService {
@@ -33,7 +34,7 @@ export class CreditService {
     return creditSave;
   }
 
-  async createByCode(data: CreateCreditDto) {
+  async validateDiscountCode(data: CreateCreditDto) {
     let user = await this.userService.findOne(String(data.userId));
 
     let discountCode = await this.discountCodeService.findByCode(data.code);
@@ -46,6 +47,18 @@ export class CreditService {
     if (credit) {
       throw new BadRequestException(
         'El codigo de descuento ya fue utilizado por usted. intente con otro codigo gracias.',
+      );
+    }
+
+    const currentDate = format(new Date(), 'yyyy-MM-dd');
+    const expirationDate = discountCode.expirationDate;
+    const difference = differenceInDays(
+      new Date(currentDate),
+      new Date(expirationDate),
+    );
+    if (Number(difference) > 0) {
+      throw new BadRequestException(
+        'Lo siento, el código promocional ha expirado. Por favor, ingresa otro código válido',
       );
     }
 

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -7,6 +8,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { DiscountCode } from '../../schemas/discountCode.schema';
 import { CreateDiscountCodeDto } from '../../dtos/discountCode.dto';
 import { Model } from 'mongoose';
+import { differenceInDays, format } from 'date-fns';
 
 @Injectable()
 export class DiscountCodeService {
@@ -31,6 +33,26 @@ export class DiscountCodeService {
   }
 
   async create(data: CreateDiscountCodeDto) {
+    let searchCode = await this.findByCode(data.code);
+
+    if (searchCode) {
+      const currentDate = format(new Date(), 'yyyy-MM-dd');
+      const expirationDate = searchCode.expirationDate;
+      const difference = differenceInDays(
+        new Date(currentDate),
+        new Date(expirationDate),
+      );
+      if (Number(difference) > 0) {
+        throw new BadRequestException(
+          'Código promocional expirado. Contáctanos al administrador para renovar su fecha de expiración.',
+        );
+      } else {
+        throw new BadRequestException(
+          'El codigo de descuento ingresado ya existe y se encuentra vigente',
+        );
+      }
+    }
+
     const newDiscountCode = new this.discountCodeModel(data);
     const discountCodeSave = await newDiscountCode.save();
     if (!discountCodeSave) {

@@ -96,3 +96,45 @@ const typepays = [
     description: '',
   },
 ];
+
+const typeAddress = [
+  {
+    name: 'Casa',
+    description: '',
+  },
+  {
+    name: 'Oficina',
+    description: '',
+  },
+  {
+    name: 'Otros',
+    description: '',
+  },
+];
+
+const street = [
+  {
+    name: 'Belen',
+    description: '',
+  },
+  {
+    name: 'Avenida Luzuriaga',
+    description: '',
+  },
+  {
+    name: 'Centenario',
+    description: '',
+  },
+  {
+    name: 'Sierra Hermosa',
+    description: '',
+  },
+  {
+    name: 'Palmira',
+    description: '',
+  },
+  {
+    name: 'Nicrupampa',
+    description: '',
+  },
+];

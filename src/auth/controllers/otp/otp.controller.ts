@@ -13,8 +13,8 @@ export class OtpController {
     return await this.otpService.generate(payload);
   }
 
-  @Post('/verification')
+  @Post('/validate')
   async verification(@Body() payload: CreateOtpDto) {
-    return await this.otpService.verification(payload);
+    return await this.otpService.validate(payload);
   }
 }

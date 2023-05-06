@@ -65,6 +65,50 @@ export class PushNotificationService {
     }
   }
 
+  async sendToDeviceByConfirmClient(userCliente: any) {
+    try {
+      let userSession = await this.userSessionService.findOnebyUser(
+        userCliente._id,
+      );
+      if (userSession && userSession.tokenDevice) {
+        let registrationToken = userSession.tokenDevice;
+        let app = this.connectionService.initializeFirebase();
+        const body = {
+          title: 'Tu pedido ha sido entregado',
+          message:
+            '¡Felicidades! Tu pedido ha sido entregado satisfactoriamente. Esperamos que disfrutes de tu pedido. ¡Gracias por elegir nuestro servicio de delivery ahi-llego!',
+        };
+        const payload = {
+          notification: {
+            title: body.title,
+            body: body.message,
+            sound: 'default',
+            color: '#01ffff',
+            icon: ICON_PUSH,
+          },
+        };
+        const options = {
+          priority: 'high',
+          timeToLive: 60 * 60 * 24,
+        };
+        let response = await admin
+          .messaging()
+          .sendToDevice(registrationToken, payload, options);
+        if (response) {
+          console.log('Successfully sent message:', response);
+        } else {
+          console.log('Error sending message:');
+        }
+        await app.delete();
+        return response;
+      } else {
+        return false;
+      }
+    } catch (ex) {
+      console.log('Error sending message:', ex);
+    }
+  }
+
   async sendToDeliveriesMan() {
     try {
       let usersSession = await this.userSessionService.findByProfile(
