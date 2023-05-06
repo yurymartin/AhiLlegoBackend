@@ -36,6 +36,7 @@ import {
   CreateTakeOrderDto,
 } from '../../dtos/deliveryMan.dto';
 import { PushNotificationService } from '../../../firebase/services/push-notification/push-notification.service';
+import { filterOrderInterface } from 'src/orders/interface/order.interface';
 
 const IGV_PORCENTAGE = 0.18;
 
@@ -61,6 +62,38 @@ export class OrderService {
     let orders = await this.orderModel
       .find()
       .select('-createdAt -updatedAt -__v')
+      .exec();
+    return orders;
+  }
+
+  async findByFilters(
+    statusOrderId: string,
+    deliveryManId: string,
+    companyId: string,
+    createdAtStart: string,
+    createdAtEnd: string,
+  ) {
+    let filters: filterOrderInterface = {};
+    if (statusOrderId) {
+      filters.statusOrderId = new Types.ObjectId(statusOrderId);
+    }
+    if (deliveryManId) {
+      filters.deliveryManId = new Types.ObjectId(deliveryManId);
+    }
+    if (companyId) {
+      filters.companyId = new Types.ObjectId(companyId);
+    }
+    if (createdAtStart && createdAtEnd) {
+      filters.createdAt = { $gte: createdAtStart, $lte: createdAtEnd };
+    }
+    console.log('filters =>', filters);
+    let orders = await this.orderModel
+      .find(filters)
+      .sort({ date: -1 })
+      .populate(
+        'companyId statusOrderId deliveryManId typePayId userId',
+        '-createdAt -updatedAt -__v -password -profileId',
+      )
       .exec();
     return orders;
   }

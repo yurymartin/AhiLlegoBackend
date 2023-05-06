@@ -56,11 +56,7 @@ const setting = [
 
 const profile = [
   {
-    name: 'Colaborador',
-    description: '',
-  },
-  {
-    name: 'Repartidor',
+    name: 'Administrador',
     description: '',
   },
   {
@@ -68,7 +64,12 @@ const profile = [
     description: '',
   },
   {
-    name: 'Administrador',
+    name: 'Repartidor',
+    description: '',
+  },
+
+  {
+    name: 'Colaborador',
     description: '',
   },
 ];

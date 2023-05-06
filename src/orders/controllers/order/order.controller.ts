@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   calificationI,
   confirmDeliveredClient,
@@ -16,6 +24,23 @@ export class OrderController {
   @Get()
   async findAll() {
     return await this.orderService.findAll();
+  }
+
+  @Get('/filter')
+  async findByFilters(
+    @Query('statusOrderId') statusOrderId: string,
+    @Query('deliveryManId') deliveryManId: string,
+    @Query('companyId') companyId: string,
+    @Query('createdAtStart') createdAtStart: string,
+    @Query('createdAtEnd') createdAtEnd: string,
+  ) {
+    return await this.orderService.findByFilters(
+      statusOrderId,
+      deliveryManId,
+      companyId,
+      createdAtStart,
+      createdAtEnd,
+    );
   }
 
   @Get('/available')

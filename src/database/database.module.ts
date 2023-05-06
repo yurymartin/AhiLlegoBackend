@@ -14,7 +14,7 @@ import config from '../config/configuration';
           configService.mongo;
         return {
           //   uri: `${connection}://${host}:${port}`,
-          uri: `${connection}://${user}:${password}@${dbName}.emjvipc.mongodb.net/?retryWrites=true&w=majority`,
+          uri: `${connection}://${user}:${password}@${dbName}.fkz87s3.mongodb.net/?retryWrites=true&w=majority`,
           user,
           pass: password,
           dbName,
