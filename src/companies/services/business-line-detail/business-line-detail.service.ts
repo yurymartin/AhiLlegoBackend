@@ -38,7 +38,7 @@ export class BusinessLineDetailService {
   async findByBusinessLine(businessLineId: string) {
     let businessLine = await this.businessLineService.findOne(businessLineId);
     const businessLines = await this.businessLineDetailModel
-      .find({ businessLineId: businessLine._id })
+      .find({ businessLineId: businessLine._id, status: true })
       .exec();
     return businessLines;
   }

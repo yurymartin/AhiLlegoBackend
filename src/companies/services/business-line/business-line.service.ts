@@ -17,7 +17,7 @@ export class BusinessLineService {
 
   async findAll() {
     const businessLines = await this.businessLineModel
-      .find()
+      .find({ status: true })
       .select('-createdAt -updatedAt -__v')
       .exec();
     return businessLines;
