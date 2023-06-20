@@ -33,6 +33,7 @@ export class ProductService {
       .find({
         typeProductId: typeProduct._id,
         companyId: company._id,
+        status: true,
       })
       .select('-createdAt -updatedAt -__v')
       .exec();

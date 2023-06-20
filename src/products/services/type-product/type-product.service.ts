@@ -16,7 +16,9 @@ export class TypeProductService {
   ) {}
 
   async findAll() {
-    const typeProducts = await this.typeProductModel.find().exec();
+    const typeProducts = await this.typeProductModel
+      .find({ status: true })
+      .exec();
     return typeProducts;
   }
 

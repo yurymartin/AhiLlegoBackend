@@ -32,6 +32,7 @@ export class TypeProductCompanyService {
       let company = await this.companyService.findOne(id);
       const typeProductsCompany = await this.TypeProductCompanyModel.find({
         companyId: company._id,
+        status: true,
       })
         .populate('typeProductId', '-createdAt -updatedAt -__v')
         .select('-createdAt -updatedAt -__v')
