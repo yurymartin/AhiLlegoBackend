@@ -3,6 +3,14 @@ import { Document, Types } from 'mongoose';
 import { User } from '../../users/schemas/user.schema';
 import { BusinessLineDetail } from './businessLineDetail.schema';
 
+export class Schedule extends Document {
+  @Prop()
+  startTime: string;
+
+  @Prop()
+  endTime: string;
+}
+
 @Schema({
   timestamps: true,
 })
@@ -31,8 +39,22 @@ export class Company extends Document {
   @Prop({ default: null })
   contract: string;
 
+  @Prop({ default: [] })
+  openDays: [number];
+
+  @Prop({
+    default: {
+      startTime: null,
+      endTime: null,
+    },
+  })
+  schedule: Schedule;
+
   @Prop({ type: Types.ObjectId, ref: BusinessLineDetail.name, required: true })
   businessLineDetailId: BusinessLineDetail | Types.ObjectId;
+
+  @Prop()
+  isOpen: boolean;
 
   @Prop({ type: Types.ObjectId, ref: User.name, required: true })
   userId: User | Types.ObjectId;

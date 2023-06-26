@@ -2,14 +2,24 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
-  IsDecimal,
-  IsBase64,
   IsMongoId,
   IsEmail,
   IsUrl,
   IsNumber,
+  IsArray,
+  IsObject,
 } from 'class-validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
+
+export class schedule {
+  @IsOptional()
+  @IsString()
+  startTime: string;
+
+  @IsOptional()
+  @IsString()
+  endTime: string;
+}
 
 export class CreateCompanyDto {
   @IsString()
@@ -49,6 +59,16 @@ export class CreateCompanyDto {
   @IsString()
   @ApiProperty()
   readonly contract?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ApiProperty()
+  readonly openDays: [number];
+
+  @IsObject()
+  @IsOptional()
+  @ApiProperty()
+  readonly schedule: schedule;
 
   @IsMongoId()
   @IsNotEmpty()

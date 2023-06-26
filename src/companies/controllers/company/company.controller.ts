@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { MongoIdPipe } from '../../../common/pipe/mongo-id/mongo-id.pipe';
-import { CreateCompanyDto } from '../../dtos/Company.dto';
+import { CreateCompanyDto, UpdateCompanyDto } from '../../dtos/Company.dto';
 import { CompanyService } from '../../services/company/company.service';
 
 @Controller('company')
@@ -25,5 +25,13 @@ export class CompanyController {
   @Post()
   async create(@Body() payload: CreateCompanyDto) {
     return await this.companyService.create(payload);
+  }
+
+  @Patch('/:id')
+  async update(
+    @Param('id', MongoIdPipe) id: string,
+    @Body() payload: UpdateCompanyDto,
+  ) {
+    return await this.companyService.update(id, payload);
   }
 }
