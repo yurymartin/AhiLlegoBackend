@@ -1,5 +1,7 @@
 FROM node:18
 
+ENV TZ=America/Lima
+
 WORKDIR /usr/src/app
 
 COPY package*.json ./
