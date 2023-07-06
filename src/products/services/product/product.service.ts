@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CompanyService } from '../../../companies/services/company/company.service';
 import { TypeProductService } from '../type-product/type-product.service';
 import { CreateProductDto } from '../../dtos/product.dto';
 import { Product } from '../../schemas/product.schema';
+
+interface aumentPriceI {
+  companyId: string;
+}
 
 @Injectable()
 export class ProductService {
@@ -49,5 +53,25 @@ export class ProductService {
     const newProduct = new this.productModel(data);
     const productSave = await newProduct.save();
     return productSave;
+  }
+
+  async aumentPrice(data: aumentPriceI) {
+    const products = await this.productModel.find({
+      companyId: new Types.ObjectId(data.companyId),
+    });
+    let newArray = [];
+    for (let i = 0; i < products.length; i++) {
+      const element = products[i];
+      let newBody = {
+        price: Number(element.price) + 1,
+      };
+      let productUpdate = await this.productModel.findByIdAndUpdate(
+        element._id,
+        newBody,
+        { new: true },
+      );
+      newArray.push(productUpdate);
+    }
+    return newArray;
   }
 }

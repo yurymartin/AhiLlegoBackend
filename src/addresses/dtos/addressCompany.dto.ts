@@ -4,10 +4,19 @@ import {
   IsOptional,
   IsBoolean,
   IsMongoId,
+  IsObject,
 } from 'class-validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { Street } from '../schemas/street.schema';
 import { Company } from '../../companies/schemas/company.schema';
+
+export class Coordinates {
+  @IsOptional()
+  latitude?: number;
+
+  @IsOptional()
+  longitude?: number;
+}
 
 export class CreateAddressCompanyDto {
   @IsString()
@@ -20,15 +29,10 @@ export class CreateAddressCompanyDto {
   @ApiProperty()
   readonly reference: string;
 
-  @IsString()
-  @IsNotEmpty()
+  @IsObject()
+  @IsOptional()
   @ApiProperty()
-  readonly latitud: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @ApiProperty()
-  readonly longitud: string;
+  readonly coordinates?: Coordinates;
 
   @IsMongoId()
   @IsNotEmpty()

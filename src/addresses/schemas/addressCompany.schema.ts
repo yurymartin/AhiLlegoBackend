@@ -3,6 +3,14 @@ import { Document, Types } from 'mongoose';
 import { Company } from '../../companies/schemas/company.schema';
 import { Street } from './street.schema';
 
+export class Coordinates extends Document {
+  @Prop()
+  latitude: number;
+
+  @Prop()
+  longitude: number;
+}
+
 @Schema({
   timestamps: true,
 })
@@ -22,11 +30,8 @@ export class AddressCompany extends Document {
   @Prop({ type: Types.ObjectId, ref: Street.name, required: true })
   streetId: Street | Types.ObjectId;
 
-  @Prop({ required: true })
-  latitud: number;
-
-  @Prop({ required: true })
-  longitud: number;
+  @Prop()
+  coordinates: Coordinates;
 
   @Prop({ default: true })
   status: boolean;

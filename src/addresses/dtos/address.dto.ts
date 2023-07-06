@@ -13,22 +13,10 @@ import { Street } from '../schemas/street.schema';
 
 export class Coordinates {
   @IsOptional()
-  accuracy?: number;
-
-  @IsOptional()
-  altitude?: number;
-
-  @IsOptional()
-  heading?: number;
-
-  @IsOptional()
   latitude?: number;
 
   @IsOptional()
   longitude?: number;
-
-  @IsOptional()
-  speed?: number;
 }
 
 export class CreateAddressDto {

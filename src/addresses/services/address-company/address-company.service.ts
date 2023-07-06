@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   forwardRef,
   Inject,
   Injectable,
@@ -6,9 +7,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { AddressCompany } from '../../schemas/addressCompany.schema';
-import { CreateAddressCompanyDto } from '../../dtos/addressCompany.dto';
+import {
+  CreateAddressCompanyDto,
+  UpdateAddressCompanyDto,
+} from '../../dtos/addressCompany.dto';
 import { StreetService } from '../street/street.service';
 import { CompanyService } from '../../../companies/services/company/company.service';
 
@@ -52,5 +56,29 @@ export class AddressCompanyService {
       );
     }
     return addressCompanySave;
+  }
+
+  async update(id: String, data: UpdateAddressCompanyDto) {
+    const addressCompany = await this.addressCompanyModel
+      .findOne({
+        _id: id,
+      })
+      .exec();
+    if (!addressCompany) {
+      throw new NotFoundException('No se encontro la dirección de la empresa');
+    }
+    const result = await this.addressCompanyModel.findByIdAndUpdate(
+      addressCompany._id,
+      data,
+      {
+        new: true,
+      },
+    );
+    if (!result) {
+      throw new BadRequestException(
+        'Ocurrio un error al actualizar la dirección de la empresa',
+      );
+    }
+    return result;
   }
 }

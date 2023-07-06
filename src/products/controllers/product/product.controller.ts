@@ -22,4 +22,9 @@ export class ProductController {
   async create(@Body() payload: CreateProductDto) {
     return await this.productService.create(payload);
   }
+
+  @Post('/aument/price')
+  async insertMassive(@Body() payload: any) {
+    return await this.productService.aumentPrice(payload);
+  }
 }

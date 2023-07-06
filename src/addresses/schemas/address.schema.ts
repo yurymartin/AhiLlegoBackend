@@ -6,22 +6,10 @@ import { TypeAddress } from './typeAddress.schema';
 
 export class Coordinates extends Document {
   @Prop()
-  accuracy: number;
-
-  @Prop()
-  altitude: number;
-
-  @Prop()
-  heading: number;
-
-  @Prop()
   latitude: number;
 
   @Prop()
   longitude: number;
-
-  @Prop()
-  speed: number;
 }
 
 @Schema({
