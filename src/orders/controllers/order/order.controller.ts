@@ -43,6 +43,11 @@ export class OrderController {
     );
   }
 
+  // @Get('/distance-matrix')
+  // async getDistanceMatrix() {
+  //   return await this.orderService.getAmountDeliveryByDistanceMatrix();
+  // }
+
   @Get('/available')
   async findAllAvailable() {
     return await this.orderService.findAllAvailable();

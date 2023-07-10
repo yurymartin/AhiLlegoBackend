@@ -25,6 +25,8 @@ import { DiscountCodeController } from './controllers/discount-code/discount-cod
 import { CreditController } from './controllers/credit/credit.controller';
 import { CreditService } from './services/credit/credit.service';
 import { Credit, CreditSchema } from './schemas/credit.schema';
+import { HttpModule } from '@nestjs/axios';
+import { GoogleMapsService } from './services/google-maps/google-maps.service';
 
 @Module({
   imports: [
@@ -59,6 +61,7 @@ import { Credit, CreditSchema } from './schemas/credit.schema';
     ProductsModule,
     AddressesModule,
     FirebaseModule,
+    HttpModule,
   ],
   providers: [
     TypePayService,
@@ -67,6 +70,7 @@ import { Credit, CreditSchema } from './schemas/credit.schema';
     OrderDetailService,
     DiscountCodeService,
     CreditService,
+    GoogleMapsService,
   ],
   controllers: [
     TypePayController,

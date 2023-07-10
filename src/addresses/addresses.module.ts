@@ -24,6 +24,12 @@ import {
   AddressCompany,
   AddressCompanySchema,
 } from './schemas/addressCompany.schema';
+import {
+  DistanceAmount,
+  DistanceAmountSchema,
+} from './schemas/distanceAmount.schema';
+import { DistanceAmountService } from './services/distance-amount/distance-amount.service';
+import { DistanceAmountController } from './controllers/distance-amount/distance-amount.controller';
 
 @Module({
   imports: [
@@ -48,6 +54,10 @@ import {
         name: AddressCompany.name,
         schema: AddressCompanySchema,
       },
+      {
+        name: DistanceAmount.name,
+        schema: DistanceAmountSchema,
+      },
     ]),
     forwardRef(() => UsersModule),
     forwardRef(() => CompaniesModule),
@@ -59,6 +69,7 @@ import {
     StreetService,
     StreetAmountService,
     AddressCompanyService,
+    DistanceAmountService,
   ],
   controllers: [
     TypeAddressController,
@@ -66,7 +77,13 @@ import {
     StreetController,
     StreetAmountController,
     AddressCompanyController,
+    DistanceAmountController,
   ],
-  exports: [AddressService, StreetAmountService],
+  exports: [
+    AddressService,
+    StreetAmountService,
+    AddressCompanyService,
+    DistanceAmountService,
+  ],
 })
 export class AddressesModule {}

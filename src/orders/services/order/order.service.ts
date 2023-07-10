@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -37,6 +38,10 @@ import {
 } from '../../dtos/deliveryMan.dto';
 import { PushNotificationService } from '../../../firebase/services/push-notification/push-notification.service';
 import { filterOrderInterface } from 'src/orders/interface/order.interface';
+import { GoogleMapsService } from '../google-maps/google-maps.service';
+import { AddressCompanyService } from '../../../addresses/services/address-company/address-company.service';
+import { catchError, lastValueFrom, map } from 'rxjs';
+import { DistanceAmountService } from '../../../addresses/services/distance-amount/distance-amount.service';
 
 const IGV_PORCENTAGE = 0.18;
 
@@ -52,7 +57,10 @@ export class OrderService {
     private readonly streetAmountService: StreetAmountService,
     private readonly statusOrderService: StatusOrderService,
     private readonly orderDetailService: OrderDetailService,
+    private readonly googleMapsService: GoogleMapsService,
     private readonly addressService: AddressService,
+    private readonly addressCompanyService: AddressCompanyService,
+    private readonly distanceAmountService: DistanceAmountService,
     private readonly pushNotificationService: PushNotificationService,
   ) {}
 
@@ -216,23 +224,28 @@ export class OrderService {
     let user = await this.userService.findOne(String(data.userId));
     let addressRes = await this.addressService.findOne(String(data.addressId));
 
-    let deliveryAmount = await this.streetAmountService.findAmountDelivery(
-      String(data.userId),
-      String(data.companyId),
+    const distanceGoogleMaps = await this.getDistanceMatrix(
+      user._id,
+      company._id,
     );
+
+    let deliveryAmount = await this.calculateAmountDelivery(distanceGoogleMaps);
+
+    // let deliveryAmount = await this.streetAmountService.findAmountDelivery(
+    //   String(data.userId),
+    //   String(data.companyId),
+    // );
     let bodyUpdateCredit = {
       credit: 0,
     };
-    let deliveryAmountBackup: number = Number(deliveryAmount.amount);
+
+    let deliveryAmountBackup: number = Number(deliveryAmount);
     if (user && user.credit && Number(user.credit) > 0) {
-      if (Number(user.credit) > Number(deliveryAmount.amount)) {
-        bodyUpdateCredit.credit =
-          Number(user.credit) - Number(deliveryAmount.amount);
-        deliveryAmount.amount = '0';
+      if (Number(user.credit) > Number(deliveryAmount)) {
+        bodyUpdateCredit.credit = Number(user.credit) - Number(deliveryAmount);
+        deliveryAmount = 0;
       } else {
-        deliveryAmount.amount = String(
-          Number(deliveryAmount.amount) - Number(user.credit),
-        );
+        deliveryAmount = Number(deliveryAmount) - Number(user.credit);
       }
     }
 
@@ -245,7 +258,7 @@ export class OrderService {
       amount: 0,
       amountProducts: 0,
       igv: 0,
-      delivery: deliveryAmount.amount,
+      delivery: deliveryAmount,
       amountTotal: 0,
       comissionApp: 0,
       commissionDeliveryMan: 0,
@@ -285,17 +298,16 @@ export class OrderService {
       await this.orderDetailService.create(bodyOrderDetail);
     }
     let amountProducts: number = amountTotal;
-    amountTotal = Number(amountTotal) + Number(deliveryAmount.amount);
+    amountTotal = Number(amountTotal) + Number(deliveryAmount);
     let igv = amountTotal * IGV_PORCENTAGE;
-    let comissionApp =
-      Number(deliveryAmount.amount) * COMMISSION_APP_PERCENTAGE;
+    let comissionApp = Number(deliveryAmount) * COMMISSION_APP_PERCENTAGE;
     let commissionDeliveryMan = 0;
-    if (Number(deliveryAmount.amount) <= 0) {
+    if (Number(deliveryAmount) <= 0) {
       commissionDeliveryMan =
         deliveryAmountBackup * COMMISSION_DEALER_PERCENTAGE;
     } else {
       commissionDeliveryMan =
-        Number(deliveryAmount.amount) * COMMISSION_DEALER_PERCENTAGE;
+        Number(deliveryAmount) * COMMISSION_DEALER_PERCENTAGE;
     }
 
     let bodyUpdate = {
@@ -471,5 +483,65 @@ export class OrderService {
       throw new InternalServerErrorException('Error al calificar el pedido');
     }
     return ordetUpdate;
+  }
+
+  async getDistanceMatrix(userId: any, companyId: any) {
+    let addressCompany = await this.addressCompanyService.findByCompanyId(
+      companyId,
+    );
+    if (!addressCompany) {
+      throw new NotFoundException('La empresa no tiene una dirección activa');
+    }
+
+    let addressUser = await this.addressService.findOneActiveByUserId(userId);
+    if (!addressUser) {
+      throw new NotFoundException('El usuario no tiene una dirección activa');
+    }
+    const origin = `${addressCompany.coordinates.latitude}, ${addressCompany.coordinates.longitude}`;
+    const destination = `${addressUser.coordinates.latitude}, ${addressUser.coordinates.longitude}`;
+
+    let result = this.googleMapsService
+      .getDistanceMatrix(origin, destination)
+      .pipe(
+        map((res) => {
+          return res.data;
+        }),
+      )
+      .pipe(
+        catchError(() => {
+          throw new ForbiddenException('API not available');
+        }),
+      );
+
+    return lastValueFrom(result);
+  }
+
+  async calculateAmountDelivery(responseGoogleMaps: any) {
+    let distance = 1;
+
+    if (
+      responseGoogleMaps &&
+      responseGoogleMaps.rows.length > 0 &&
+      responseGoogleMaps.rows[0].elements.length > 0 &&
+      responseGoogleMaps.rows[0].elements[0] &&
+      responseGoogleMaps.rows[0].elements[0].distance &&
+      responseGoogleMaps.rows[0].elements[0].distance &&
+      responseGoogleMaps.rows[0].elements[0].distance.value
+    ) {
+      console.log(
+        '[RESPONSE_GOOGLE] => ',
+        responseGoogleMaps.rows[0].elements[0].distance,
+      );
+      distance = distance =
+        responseGoogleMaps.rows[0].elements[0].distance.value;
+    }
+    let amount = 5;
+    let distanceAmount = await this.distanceAmountService.getByDistance(
+      distance,
+    );
+    if (distanceAmount) {
+      amount = Number(distanceAmount.amount);
+    }
+    return amount;
   }
 }
