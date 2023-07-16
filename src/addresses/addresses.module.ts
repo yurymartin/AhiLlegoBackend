@@ -30,6 +30,7 @@ import {
 } from './schemas/distanceAmount.schema';
 import { DistanceAmountService } from './services/distance-amount/distance-amount.service';
 import { DistanceAmountController } from './controllers/distance-amount/distance-amount.controller';
+import { GoogleModule } from '../google/google.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { DistanceAmountController } from './controllers/distance-amount/distance
     forwardRef(() => UsersModule),
     forwardRef(() => CompaniesModule),
     SettingsModule,
+    GoogleModule,
   ],
   providers: [
     TypeAddressService,

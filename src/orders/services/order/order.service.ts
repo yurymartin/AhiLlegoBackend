@@ -38,10 +38,10 @@ import {
 } from '../../dtos/deliveryMan.dto';
 import { PushNotificationService } from '../../../firebase/services/push-notification/push-notification.service';
 import { filterOrderInterface } from 'src/orders/interface/order.interface';
-import { GoogleMapsService } from '../google-maps/google-maps.service';
 import { AddressCompanyService } from '../../../addresses/services/address-company/address-company.service';
 import { catchError, lastValueFrom, map } from 'rxjs';
 import { DistanceAmountService } from '../../../addresses/services/distance-amount/distance-amount.service';
+import { MapsService } from '../../../google/services/maps/maps.service';
 
 const IGV_PORCENTAGE = 0.18;
 
@@ -57,7 +57,7 @@ export class OrderService {
     private readonly streetAmountService: StreetAmountService,
     private readonly statusOrderService: StatusOrderService,
     private readonly orderDetailService: OrderDetailService,
-    private readonly googleMapsService: GoogleMapsService,
+    private readonly googleMapsService: MapsService,
     private readonly addressService: AddressService,
     private readonly addressCompanyService: AddressCompanyService,
     private readonly distanceAmountService: DistanceAmountService,

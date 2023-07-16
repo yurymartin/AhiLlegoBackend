@@ -16,6 +16,7 @@ import { SettingsModule } from './settings/settings.module';
 import { FirebaseModule } from './firebase/firebase.module';
 import configuration from './config/configuration';
 import { LoggerMiddleware } from './middleware/logger.middleware';
+import { GoogleModule } from './google/google.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { LoggerMiddleware } from './middleware/logger.middleware';
     AddressesModule,
     SettingsModule,
     FirebaseModule,
+    GoogleModule,
   ],
   controllers: [AppController],
   providers: [AppService],

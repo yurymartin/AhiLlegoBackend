@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
@@ -7,7 +8,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CreateStreetAmountDto } from '../../dtos/streetAmount.dto';
 import { StreetAmount } from '../../schemas/streetAmount.schema';
 import { SettingService } from '../../../settings/services/setting/setting.service';
@@ -16,6 +17,9 @@ import { StreetService } from '../street/street.service';
 import { AddressCompanyService } from '../address-company/address-company.service';
 import { CompanyService } from '../../../companies/services/company/company.service';
 import { AddressService } from '../address/address.service';
+import { catchError, lastValueFrom, map } from 'rxjs';
+import { DistanceAmountService } from '../distance-amount/distance-amount.service';
+import { MapsService } from '../../../google/services/maps/maps.service';
 
 @Injectable()
 export class StreetAmountService {
@@ -28,6 +32,8 @@ export class StreetAmountService {
     private addressCompanyService: AddressCompanyService,
     @Inject(forwardRef(() => CompanyService))
     private companyService: CompanyService,
+    private readonly googleMapsService: MapsService,
+    private readonly distanceAmountService: DistanceAmountService,
   ) {}
   async findAll() {
     let res = await this.streetAmountModel.find({}).exec();
@@ -61,26 +67,94 @@ export class StreetAmountService {
     let addressCompany = await this.addressCompanyService.findByCompanyId(
       companyId,
     );
+    if (!addressCompany) {
+      throw new NotFoundException('La empresa no tiene una dirección activa');
+    }
+
     let addressUser = await this.addressService.findOneActiveByUserId(userId);
     if (!addressUser) {
       throw new NotFoundException('El usuario no tiene una dirección activa');
     }
-    let filter = {
-      streetOriginId: addressCompany.streetId,
-      streetDestinationId: addressUser.streetId,
-    };
-    let streetAmount = await this.streetAmountModel.findOne(filter);
-    if (!streetAmount) {
+
+    const distanceGoogleMaps = await this.getDistanceMatrix(
+      new Types.ObjectId(userId),
+      new Types.ObjectId(companyId),
+    );
+
+    let streetAmount = { amount: 0 };
+    let deliveryAmount = await this.calculateAmountDelivery(distanceGoogleMaps);
+
+    if (!deliveryAmount) {
       let amountDefault = await this.settingService.findByCode(
         CODE_SETTING_AMOUNT_DELIVERY_DEFAULT,
       );
       if (!amountDefault) {
-        throw new BadRequestException(
-          'No se encontro el monto de delivery por defecto',
-        );
+        streetAmount = { amount: 5 };
       }
-      return { amount: amountDefault.value };
+      streetAmount = { amount: 5 };
     }
+
+    streetAmount = { amount: deliveryAmount };
     return streetAmount;
+  }
+
+  async getDistanceMatrix(userId: any, companyId: any) {
+    let addressCompany = await this.addressCompanyService.findByCompanyId(
+      companyId,
+    );
+    if (!addressCompany) {
+      throw new NotFoundException('La empresa no tiene una dirección activa');
+    }
+
+    let addressUser = await this.addressService.findOneActiveByUserId(userId);
+    if (!addressUser) {
+      throw new NotFoundException('El usuario no tiene una dirección activa');
+    }
+    const origin = `${addressCompany.coordinates.latitude}, ${addressCompany.coordinates.longitude}`;
+    const destination = `${addressUser.coordinates.latitude}, ${addressUser.coordinates.longitude}`;
+
+    let result = this.googleMapsService
+      .getDistanceMatrix(origin, destination)
+      .pipe(
+        map((res) => {
+          return res.data;
+        }),
+      )
+      .pipe(
+        catchError(() => {
+          throw new ForbiddenException('API not available');
+        }),
+      );
+
+    return lastValueFrom(result);
+  }
+
+  async calculateAmountDelivery(responseGoogleMaps: any) {
+    let distance = 1;
+
+    if (
+      responseGoogleMaps &&
+      responseGoogleMaps.rows.length > 0 &&
+      responseGoogleMaps.rows[0].elements.length > 0 &&
+      responseGoogleMaps.rows[0].elements[0] &&
+      responseGoogleMaps.rows[0].elements[0].distance &&
+      responseGoogleMaps.rows[0].elements[0].distance &&
+      responseGoogleMaps.rows[0].elements[0].distance.value
+    ) {
+      console.log(
+        '[RESPONSE_GOOGLE] => ',
+        responseGoogleMaps.rows[0].elements[0].distance,
+      );
+      distance = distance =
+        responseGoogleMaps.rows[0].elements[0].distance.value;
+    }
+    let amount = 5;
+    let distanceAmount = await this.distanceAmountService.getByDistance(
+      distance,
+    );
+    if (distanceAmount) {
+      amount = Number(distanceAmount.amount);
+    }
+    return amount;
   }
 }
