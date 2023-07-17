@@ -15,7 +15,6 @@ import { Order } from '../../schemas/order.schema';
 import { TypePayService } from '../type-pay/type-pay.service';
 import { ProductService } from '../../../products/services/product/product.service';
 import { format, lastDayOfMonth } from 'date-fns';
-import { StreetAmountService } from '../../../addresses/services/street-amount/street-amount.service';
 import { StatusOrderService } from '../status-order/status-order.service';
 import { OrderDetailService } from '../order-detail/order-detail.service';
 import {
@@ -54,7 +53,6 @@ export class OrderService {
     private readonly typePayService: TypePayService,
     private readonly userService: UserService,
     private readonly productService: ProductService,
-    private readonly streetAmountService: StreetAmountService,
     private readonly statusOrderService: StatusOrderService,
     private readonly orderDetailService: OrderDetailService,
     private readonly googleMapsService: MapsService,
@@ -117,10 +115,19 @@ export class OrderService {
     if (!order) {
       throw new NotFoundException(`No se encontro el pedido`);
     }
+
+    let addressCompany = await this.addressCompanyService.findByCompanyId(
+      String(order.companyId._id),
+    );
+    if (!addressCompany) {
+      throw new NotFoundException('La empresa no tiene una dirección activa');
+    }
+
     let detail = await this.orderDetailService.findByOrderId(order._id);
     let response = {
       order: order,
       detail: detail,
+      addressCompany: addressCompany,
     };
     return response;
   }
@@ -269,6 +276,7 @@ export class OrderService {
       companyId: company._id,
       address: addressRes.address,
       street: addressRes.streetId.name,
+      coordinates: addressRes.coordinates,
       reference: addressRes.reference,
       date: dateNow,
     };

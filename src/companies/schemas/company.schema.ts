@@ -42,12 +42,7 @@ export class Company extends Document {
   @Prop({ default: [] })
   openDays: [number];
 
-  @Prop({
-    default: {
-      startTime: null,
-      endTime: null,
-    },
-  })
+  @Prop({ default: { startTime: null, endTime: null } })
   schedule: Schedule;
 
   @Prop({ type: Types.ObjectId, ref: BusinessLineDetail.name, required: true })

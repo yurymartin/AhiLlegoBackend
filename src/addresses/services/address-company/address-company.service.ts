@@ -28,6 +28,9 @@ export class AddressCompanyService {
 
   async findByCompanyId(companyId: string): Promise<AddressCompany | any> {
     let company = await this.companyService.findOne(companyId);
+    if (!company) {
+      throw new NotFoundException('No se encontro la empresa');
+    }
 
     const address = await this.addressCompanyModel
       .findOne({ companyId: company._id })

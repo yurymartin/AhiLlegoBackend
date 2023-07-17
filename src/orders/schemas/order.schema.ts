@@ -5,6 +5,14 @@ import { User } from '../../users/schemas/user.schema';
 import { StatusOrder } from './statusOrder.schema';
 import { TypePay } from './typePay.schema';
 
+export class Coordinates extends Document {
+  @Prop()
+  latitude: number;
+
+  @Prop()
+  longitude: number;
+}
+
 @Schema({
   timestamps: true,
 })
@@ -50,6 +58,9 @@ export class Order extends Document {
 
   @Prop({ default: null })
   street: string;
+
+  @Prop({ default: null })
+  coordinates: Coordinates;
 
   @Prop({ default: null })
   reference: string;
