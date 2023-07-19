@@ -10,11 +10,11 @@ import config from '../config/configuration';
   imports: [
     MongooseModule.forRootAsync({
       useFactory: (configService: ConfigType<typeof config>) => {
-        const { connection, user, password, host, port, dbName } =
+        const { connection, user, password, host, port, dbName, keyUrl } =
           configService.mongo;
         return {
           //   uri: `${connection}://${host}:${port}`,
-          uri: `${connection}://${user}:${password}@${dbName}.fkz87s3.mongodb.net/?retryWrites=true&w=majority`,
+          uri: `${connection}://${user}:${password}@${dbName}.${keyUrl}.mongodb.net/?retryWrites=true&w=majority`,
           user,
           pass: password,
           dbName,

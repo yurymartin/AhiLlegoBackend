@@ -4,6 +4,7 @@ export default registerAs('config', () => ({
   port: parseInt(process.env.PORT, 10) || 3000,
   mongo: {
     dbName: process.env.MONGO_DB,
+    keyUrl: process.env.MONGO_KEY_URL,
     user: process.env.MONGO_INITDB_ROOT_USERNAME,
     password: process.env.MONGO_INITDB_ROOT_PASSWORD,
     port: parseInt(process.env.MONGO_PORT, 10),

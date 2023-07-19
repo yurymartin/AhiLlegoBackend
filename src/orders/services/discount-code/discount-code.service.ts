@@ -33,7 +33,9 @@ export class DiscountCodeService {
   }
 
   async create(data: CreateDiscountCodeDto) {
-    let searchCode = await this.findByCode(data.code);
+    let searchCode = await this.discountCodeModel.findOne({
+      code: data.code,
+    });
 
     if (searchCode) {
       const currentDate = format(new Date(), 'yyyy-MM-dd');
