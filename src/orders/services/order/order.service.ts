@@ -27,6 +27,8 @@ import {
   STATUS_ORDER_ON_ROUTE_ID,
   STATUS_ORDER_FINALIZED_ID,
   STATUS_ORDER_CANCELLED_ID,
+  PROMOTION_TYPE_FIRST_DELIVERY_FREE,
+  PROMOTION_TYPE_DELIVERY_FREE,
 } from '../../../common/constants';
 import { AddressService } from '../../../addresses/services/address/address.service';
 import {
@@ -41,6 +43,8 @@ import { AddressCompanyService } from '../../../addresses/services/address-compa
 import { catchError, lastValueFrom, map } from 'rxjs';
 import { DistanceAmountService } from '../../../addresses/services/distance-amount/distance-amount.service';
 import { MapsService } from '../../../google/services/maps/maps.service';
+import { Promotion } from '../../schemas/promotion.schema';
+import { PromotionService } from '../promotion/promotion.service';
 
 const IGV_PORCENTAGE = 0.18;
 
@@ -60,6 +64,7 @@ export class OrderService {
     private readonly addressCompanyService: AddressCompanyService,
     private readonly distanceAmountService: DistanceAmountService,
     private readonly pushNotificationService: PushNotificationService,
+    private readonly promotionService: PromotionService,
   ) {}
 
   private readonly logger = new Logger(OrderService.name);
@@ -229,6 +234,7 @@ export class OrderService {
     let company = await this.companyService.findOne(data.companyId);
     let typePay = await this.typePayService.findOne(String(data.typePayId));
     let user = await this.userService.findOne(String(data.userId));
+    this.logger.verbose('[user] => ', user);
     let addressRes = await this.addressService.findOne(String(data.addressId));
 
     const distanceGoogleMaps = await this.getDistanceMatrix(
@@ -237,28 +243,28 @@ export class OrderService {
     );
 
     let deliveryAmount = await this.calculateAmountDelivery(distanceGoogleMaps);
+    this.logger.log('[deliveryAmount] =>', deliveryAmount);
 
-    // let deliveryAmount = await this.streetAmountService.findAmountDelivery(
-    //   String(data.userId),
-    //   String(data.companyId),
-    // );
-    let bodyUpdateCredit = {
-      credit: 0,
-    };
-
-    let deliveryAmountBackup: number = Number(deliveryAmount);
-    if (user && user.credit && Number(user.credit) > 0) {
-      if (Number(user.credit) > Number(deliveryAmount)) {
-        bodyUpdateCredit.credit = Number(user.credit) - Number(deliveryAmount);
-        deliveryAmount = 0;
-      } else {
-        deliveryAmount = Number(deliveryAmount) - Number(user.credit);
-      }
-    }
+    let comissionApp = deliveryAmount * COMMISSION_APP_PERCENTAGE;
+    let commissionDeliveryMan = deliveryAmount * COMMISSION_DEALER_PERCENTAGE;
 
     let statusOrder = await this.statusOrderService.findByStep(
       STEP_STATUS_PENDING,
     );
+
+    //? ***************** MANEJAR LAS PROMOCIONES *****************
+    let promotion = await this.promotionService.getCurrentByUserId(user._id);
+    let promotionId = null;
+    this.logger.verbose('[promotion] => ', promotion);
+
+    let discount = 0;
+    if (promotion && JSON.stringify(promotion) !== '{}') {
+      deliveryAmount = 0;
+      promotionId = promotion._id;
+      discount = deliveryAmount;
+    }
+
+    //? ***************** FINAL MANEJAR LAS PROMOCIONES *****************
 
     let dateNow = format(new Date(), 'yyyy-dd-MM HH:mm:ss');
     let bodyOrder = {
@@ -269,8 +275,10 @@ export class OrderService {
       amountTotal: 0,
       comissionApp: 0,
       commissionDeliveryMan: 0,
+      discount: 0,
       userId: user._id,
       deliveryManId: null,
+      promotionId: promotionId,
       statusOrderId: statusOrder._id,
       typePayId: typePay._id,
       companyId: company._id,
@@ -294,29 +302,43 @@ export class OrderService {
     let amountTotal: number = 0;
     for (const item of data.details) {
       let product = await this.productService.findOne(item.productId);
-      amountDetail =
-        Number(Number(product.price) - Number(product.discount || 0)) *
-        Number(item.quantity);
+      const { price } = product;
+      const { quantity, comment } = item;
+
+      const discount = product.discount || 0;
+
+      amountDetail = (Number(price) - Number(discount)) * Number(quantity);
       bodyOrderDetail.productId = product._id;
-      bodyOrderDetail.quantity = item.quantity;
-      bodyOrderDetail.price = product.price;
+      bodyOrderDetail.quantity = quantity;
+      bodyOrderDetail.price = price;
       bodyOrderDetail.amount = amountDetail.toFixed(2);
-      bodyOrderDetail.comment = item.comment;
+      bodyOrderDetail.comment = comment;
       amountTotal = amountTotal + amountDetail;
       await this.orderDetailService.create(bodyOrderDetail);
     }
+    this.logger.log('[amountDetail] =>', amountDetail);
     let amountProducts: number = amountTotal;
-    amountTotal = Number(amountTotal) + Number(deliveryAmount);
-    let igv = amountTotal * IGV_PORCENTAGE;
-    let comissionApp = Number(deliveryAmount) * COMMISSION_APP_PERCENTAGE;
-    let commissionDeliveryMan = 0;
-    if (Number(deliveryAmount) <= 0) {
-      commissionDeliveryMan =
-        deliveryAmountBackup * COMMISSION_DEALER_PERCENTAGE;
-    } else {
-      commissionDeliveryMan =
-        Number(deliveryAmount) * COMMISSION_DEALER_PERCENTAGE;
+
+    amountTotal = amountTotal + deliveryAmount;
+    this.logger.log('[amountTotal] =>', amountTotal);
+
+    let bodyUpdateCredit = {
+      credit: 0,
+    };
+
+    if (Number(user.credit) > 0) {
+      if (Number(user.credit) >= Number(amountTotal)) {
+        discount = discount + amountTotal;
+        amountTotal = 0;
+        bodyUpdateCredit.credit = Number(user.credit) - Number(amountProducts);
+      } else {
+        discount = discount + Number(user.credit);
+        amountTotal = Number(amountProducts) - Number(user.credit);
+        bodyUpdateCredit.credit = 0;
+      }
     }
+
+    let igv: number = amountTotal * IGV_PORCENTAGE;
 
     let bodyUpdate = {
       amount: (Number(amountTotal) - Number(igv)).toFixed(2),
@@ -325,7 +347,12 @@ export class OrderService {
       amountTotal: amountTotal.toFixed(2),
       comissionApp: comissionApp.toFixed(2),
       commissionDeliveryMan: commissionDeliveryMan.toFixed(2),
+      discount: discount,
     };
+
+    this.logger.log('[bodyUpdate] => ', bodyUpdate);
+
+    this.logger.log('[bodyUpdateCredit] =>', bodyUpdateCredit);
 
     let updateCredit = await this.userService.update(
       user._id,

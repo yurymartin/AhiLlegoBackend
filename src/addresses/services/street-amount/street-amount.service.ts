@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ForbiddenException,
   forwardRef,
   Inject,
@@ -64,14 +63,14 @@ export class StreetAmountService {
   }
 
   async findAmountDelivery(userId: string, companyId: string) {
-    let addressCompany = await this.addressCompanyService.findByCompanyId(
+    const addressCompany = await this.addressCompanyService.findByCompanyId(
       companyId,
     );
     if (!addressCompany) {
       throw new NotFoundException('La empresa no tiene una dirección activa');
     }
 
-    let addressUser = await this.addressService.findOneActiveByUserId(userId);
+    const addressUser = await this.addressService.findOneActiveByUserId(userId);
     if (!addressUser) {
       throw new NotFoundException('El usuario no tiene una dirección activa');
     }

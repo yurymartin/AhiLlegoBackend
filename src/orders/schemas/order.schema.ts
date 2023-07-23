@@ -4,6 +4,7 @@ import { Company } from '../../companies/schemas/company.schema';
 import { User } from '../../users/schemas/user.schema';
 import { StatusOrder } from './statusOrder.schema';
 import { TypePay } from './typePay.schema';
+import { Promotion } from './promotion.schema';
 
 export class Coordinates extends Document {
   @Prop()
@@ -38,6 +39,9 @@ export class Order extends Document {
   @Prop({ required: true })
   commissionDeliveryMan: number;
 
+  @Prop({ default: 0 })
+  discount: number;
+
   @Prop({ type: Types.ObjectId, ref: User.name, required: true })
   userId: User | Types.ObjectId;
 
@@ -52,6 +56,9 @@ export class Order extends Document {
 
   @Prop({ type: Types.ObjectId, ref: Company.name, required: true })
   companyId: Company | Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: Promotion.name, default: null })
+  promotionId: Promotion | Types.ObjectId;
 
   @Prop({ default: null })
   address: string;

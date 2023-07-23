@@ -33,6 +33,11 @@ export class CreateDiscountCodeDto {
   @ApiProperty()
   readonly representative: string;
 
+  @IsNumber()
+  @IsNotEmpty()
+  @ApiProperty()
+  readonly quantityAvailable: number;
+
   @IsDateString({ strict: true } as any)
   @IsNotEmpty()
   @ApiProperty()

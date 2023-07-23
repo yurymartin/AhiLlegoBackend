@@ -10,12 +10,15 @@ import { Credit } from '../../schemas/credit.schema';
 import { DiscountCodeService } from '../discount-code/discount-code.service';
 import { UserService } from '../../../users/services/user/user.service';
 import { differenceInDays, format } from 'date-fns';
+import { DiscountCode } from '../../schemas/discountCode.schema';
 
 @Injectable()
 export class CreditService {
   constructor(
     @InjectModel(Credit.name)
     private readonly creditModel: Model<Credit>,
+    @InjectModel(DiscountCode.name)
+    private readonly discountCodeModel: Model<DiscountCode>,
     private readonly discountCodeService: DiscountCodeService,
     private readonly userService: UserService,
   ) {}
@@ -58,9 +61,23 @@ export class CreditService {
     );
     if (Number(difference) > 0) {
       throw new BadRequestException(
-        'Lo siento, el código promocional ha expirado. Por favor, ingresa otro código válido',
+        'Lo siento, el código promocional ha expirado. Por favor, ingresa otro código',
       );
     }
+
+    const quantityAvailable = Number(discountCode.quantityAvailable);
+    if (quantityAvailable <= 0) {
+      throw new BadRequestException(
+        'Lo siento, el código promocional ha llegado al límite. Por favor, ingresa otro código',
+      );
+    }
+    const newQuantityAvailable = quantityAvailable - 1;
+
+    let updateAvariable = await this.discountCodeModel.findByIdAndUpdate(
+      discountCode._id,
+      { quantityAvailable: newQuantityAvailable },
+      { new: true },
+    );
 
     let valueCurrent = Number(user.credit || 0) + discountCode.value;
 

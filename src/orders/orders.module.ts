@@ -27,6 +27,9 @@ import { CreditService } from './services/credit/credit.service';
 import { Credit, CreditSchema } from './schemas/credit.schema';
 import { HttpModule } from '@nestjs/axios';
 import { GoogleModule } from '../google/google.module';
+import { Promotion, PromotionSchema } from './schemas/promotion.schema';
+import { PromotionController } from './controllers/promotion/promotion.controller';
+import { PromotionService } from './services/promotion/promotion.service';
 
 @Module({
   imports: [
@@ -55,6 +58,10 @@ import { GoogleModule } from '../google/google.module';
         name: Credit.name,
         schema: CreditSchema,
       },
+      {
+        name: Promotion.name,
+        schema: PromotionSchema,
+      },
     ]),
     CompaniesModule,
     UsersModule,
@@ -71,6 +78,7 @@ import { GoogleModule } from '../google/google.module';
     OrderDetailService,
     DiscountCodeService,
     CreditService,
+    PromotionService,
   ],
   controllers: [
     TypePayController,
@@ -78,6 +86,7 @@ import { GoogleModule } from '../google/google.module';
     OrderController,
     DiscountCodeController,
     CreditController,
+    PromotionController,
   ],
 })
 export class OrdersModule {}

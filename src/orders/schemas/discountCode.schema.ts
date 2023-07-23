@@ -17,6 +17,9 @@ export class DiscountCode extends Document {
   @Prop({ default: null })
   representative: string;
 
+  @Prop({ default: 0 })
+  quantityAvailable: number;
+
   @Prop({ required: true })
   expirationDate: string;
 

@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { User } from '../../users/schemas/user.schema';
-import { DiscountCode } from '../schemas/discountCode.schema';
+import { DiscountCode } from './discountCode.schema';
 
 @Schema({
   timestamps: true,
