@@ -26,9 +26,9 @@ export class UserSessionService {
     return userSession;
   }
 
-  async findOnebyUser(userId: string): Promise<UserSession> {
+  async findOnebyUser(userId: string | any): Promise<UserSession> {
     const userSession = await this.userSessionModel
-      .findOne({ userId: userId })
+      .findOne({ userId: new Types.ObjectId(userId) })
       .exec();
 
     return userSession;

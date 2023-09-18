@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -14,15 +15,20 @@ import { CreateSignInCustomerDto } from '../../dtos/signInCustomer.dto';
 import {
   PROFILE_CUSTOMER_ID,
   PROFILE_DELIVERY_MAN_ID,
+  PROFILE_ENTERPRISE_ID,
 } from '../../../common/constants';
 import { CreateDeliveryManDto } from '../../dtos/deliveryMan.dto';
 import { BcryptService } from '../bcrypt/bcrypt.service';
 import { CreateLoginDeliveryManDto } from '../../dtos/deliveryManLogin.dto';
+import { ConfigService } from '@nestjs/config';
+import { CompanyService } from '../../../companies/services/company/company.service';
 
 @Injectable()
 export class AuthService {
   constructor(
+    private configService: ConfigService,
     private userService: UserService,
+    private companyService: CompanyService,
     private userSessionService: UserSessionService,
     private bcryptService: BcryptService,
     private jwtService: JwtService,
@@ -36,7 +42,7 @@ export class AuthService {
       data.documentNumber,
     );
     if (!user || String(user.profileId) !== PROFILE_DELIVERY_MAN_ID) {
-      throw new NotFoundException('No existe el usuario repartidor');
+      throw new BadRequestException('Credenciales Incorrectas');
     }
     if (!user.status) {
       throw new BadRequestException('El usuario se encuentra inactivo');
@@ -64,6 +70,61 @@ export class AuthService {
       newSession = await this.userSessionService.create(body);
     }
     return newSession;
+  }
+
+  async loginEnterprise(data: CreateLoginDeliveryManDto) {
+    this.logger.log('[loginDeliveryMan DATA] =>', data);
+    let user = await this.userService.findOneByDocumentNumber(
+      data.documentNumber,
+    );
+    let company = await this.companyService.findByUserId(user._id);
+    if (!company.status) {
+      throw new BadRequestException(
+        'La empresa se encuentra inactivo, comuniquese con la administración de ahi-llego',
+      );
+    }
+
+    if (!user || String(user.profileId) !== PROFILE_ENTERPRISE_ID) {
+      throw new NotFoundException('credenciales incorrectas');
+    }
+    if (!user.status) {
+      throw new BadRequestException(
+        'El usuario se encuentra inactivo, comuniquese con la administración de ahi-llego',
+      );
+    }
+    let validatePassword = this.bcryptService.validatePassword(
+      String(data.password),
+      String(user.password),
+    );
+    if (!validatePassword) {
+      throw new BadRequestException('Credenciales Incorrectas');
+    }
+    let tokenJwt = this.generateJWT(user);
+    let userSession = await this.userSessionService.findOnebyUser(user._id);
+    let newSession: any = null;
+    let body: any = {
+      token: tokenJwt,
+      tokenDevice: data.tokenDevice || '',
+      status: true,
+      profileId: user.profileId,
+    };
+
+    if (userSession) {
+      newSession = await this.userSessionService.update(userSession._id, body);
+    } else {
+      body.userId = user._id;
+      newSession = await this.userSessionService.create(body);
+    }
+    let result = {
+      token: tokenJwt,
+      userId: user._id,
+      profileId: user.profileId,
+      companyId: company._id,
+      logo: company.logo,
+      name: company.name,
+      description: company.description,
+    };
+    return result;
   }
 
   async signInCustomer(data: CreateSignInCustomerDto): Promise<any> {
@@ -147,7 +208,8 @@ export class AuthService {
       profileId: user.profileId._id,
       userId: user._id,
     };
-    let token = this.jwtService.sign(payload);
+    const secretKey = this.configService.get<string>('KEY_SECRET_JWT');
+    let token = this.jwtService.sign(payload, { secret: secretKey });
     return token;
   }
 }

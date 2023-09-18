@@ -42,6 +42,9 @@ export class Order extends Document {
   @Prop({ default: 0 })
   discount: number;
 
+  @Prop({ default: 0 })
+  amountPayEnteprise: number;
+
   @Prop({ type: Types.ObjectId, ref: User.name, required: true })
   userId: User | Types.ObjectId;
 
@@ -77,6 +80,9 @@ export class Order extends Document {
 
   @Prop({ default: null })
   dateDelivery: string;
+
+  @Prop({ default: null })
+  dateTimeConfirmed: string;
 
   @Prop({ default: false })
   checkPay: boolean;

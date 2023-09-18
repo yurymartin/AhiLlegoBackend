@@ -22,6 +22,9 @@ export class OrderDetail extends Document {
   @Prop({ required: true })
   amount: number;
 
+  @Prop({ required: true })
+  amountEnterprise: number;
+
   @Prop({ default: null })
   comment: string;
 

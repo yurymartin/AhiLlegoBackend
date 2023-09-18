@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import {
   CreateCompanyDto,
   UpdateCompanyDto,
@@ -36,7 +36,19 @@ export class CompanyService {
   }
 
   async findOne(id: string | any) {
-    const company = await this.companyModel.findOne({ _id: id }).exec();
+    const company = await this.companyModel
+      .findOne({ _id: new Types.ObjectId(id) })
+      .exec();
+    if (!company) {
+      throw new NotFoundException(`No se encontro la empresa`);
+    }
+    return company;
+  }
+
+  async findByUserId(userId: string | any) {
+    const company = await this.companyModel
+      .findOne({ userId: new Types.ObjectId(userId) })
+      .exec();
     if (!company) {
       throw new NotFoundException(`No se encontro la empresa`);
     }

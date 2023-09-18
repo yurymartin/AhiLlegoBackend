@@ -43,11 +43,6 @@ export class OrderController {
     );
   }
 
-  @Get('/available')
-  async findAllAvailable() {
-    return await this.orderService.findAllAvailable();
-  }
-
   @Get(':id')
   async findOne(@Param('id', MongoIdPipe) id: string) {
     return await this.orderService.findOne(id);
@@ -66,11 +61,41 @@ export class OrderController {
     return await this.orderService.search(statusOrderId, deliveryManId);
   }
 
+  @Get('/available/company/:companyId')
+  async getAvailableEnterprise(
+    @Param('companyId', MongoIdPipe) companyId: string,
+  ) {
+    return await this.orderService.getAvailableEnterprise(companyId);
+  }
+
+  @Get('/available/delivery-man')
+  async findAllAvailable() {
+    return await this.orderService.getAllAvailableForDeliveryMan();
+  }
+
+  @Get('/status-order/:statusOrderId/company/:companyId')
+  async getStatusOrderAndCompanyId(
+    @Param('statusOrderId', MongoIdPipe) statusOrderId: string,
+    @Param('companyId', MongoIdPipe) companyId: string,
+  ) {
+    return await this.orderService.getStatusOrderAndCompanyId(
+      statusOrderId,
+      companyId,
+    );
+  }
+
   @Get('list-pending/delivery-man/:deliveryManId')
   async getPendingByDeliveryManId(
     @Param('deliveryManId', MongoIdPipe) deliveryManId: string,
   ) {
     return await this.orderService.getPendingByDeliveryManId(deliveryManId); //
+  }
+
+  @Get('list-pending/company/:companyId')
+  async getPendingByCompanyId(
+    @Param('companyId', MongoIdPipe) companyId: string,
+  ) {
+    return await this.orderService.getPendingByCompanyId(companyId); //
   }
 
   @Get('/earnings/deliveryMan/month-current/:id/')

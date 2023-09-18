@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import { StatusOrder } from '../../schemas/statusOrder.schema';
 import {
@@ -27,19 +27,19 @@ export class StatusOrderService {
     return statusOrders;
   }
 
-  async findByStep(step: string | number) {
-    const statusOrders = await this.statusOrderModel
-      .findOne({ step: step })
-      .exec();
-    if (!statusOrders) {
-      throw new NotFoundException(`No se encontro el estado de pedido`);
-    }
-    return statusOrders;
-  }
+  // async findByStep(step: string | number) {
+  //   const statusOrders = await this.statusOrderModel
+  //     .findOne({ step: step })
+  //     .exec();
+  //   if (!statusOrders) {
+  //     throw new NotFoundException(`No se encontro el estado de pedido`);
+  //   }
+  //   return statusOrders;
+  // }
 
-  async findOne(id: string) {
+  async findOne(id: string | any) {
     const statusOrder = await this.statusOrderModel
-      .findOne({ _id: id })
+      .findOne({ _id: new Types.ObjectId(id) })
       .select('-createdAt -updatedAt -__v')
       .exec();
     if (!statusOrder) {

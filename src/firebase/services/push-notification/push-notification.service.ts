@@ -2,15 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { UserSessionService } from '../../../users/services/user-session/user-session.service';
 import { ConnectionService } from '../connection/connection.service';
 import * as admin from 'firebase-admin';
-import {
-  STATUS_ORDER_FINALIZED_ID,
-  STATUS_ORDER_ON_ROUTE_ID,
-  STATUS_ORDER_PENDING_ID,
-  STATUS_ORDER_PROCESSING_ID,
-  STATUS_ORDER_CANCELLED_ID,
-  PROFILE_DELIVERY_MAN_ID,
-} from '../../../common/constants';
+import { PROFILE_DELIVERY_MAN_ID } from '../../../common/constants';
 import { MulticastMessage } from 'firebase-admin/lib/messaging/messaging-api';
+import { handlerByStatusId } from '../../../common/helper/notificationOrder';
+import { CompanyService } from '../../../companies/services/company/company.service';
 
 const ICON_PUSH = 'assets_images_logo_circle';
 
@@ -18,26 +13,24 @@ const ICON_PUSH = 'assets_images_logo_circle';
 export class PushNotificationService {
   constructor(
     private readonly userSessionService: UserSessionService,
+    private readonly companyService: CompanyService,
     private connectionService: ConnectionService,
   ) {}
 
   async sendPushNotificationToDeviceByStatus(
-    userCliente: any,
-    deliveryMan: any,
+    userId: any,
     statusOrderId: string,
   ) {
     try {
-      let userSession = await this.userSessionService.findOnebyUser(
-        userCliente._id,
-      );
+      let userSession = await this.userSessionService.findOnebyUser(userId);
       if (userSession && userSession.tokenDevice) {
         let registrationToken = userSession.tokenDevice;
         let app = this.connectionService.initializeFirebase();
-        let body = this.handlerMessageByStatus(statusOrderId, deliveryMan);
+        let notification = handlerByStatusId(statusOrderId);
         const payload = {
           notification: {
-            title: body.title,
-            body: body.message,
+            title: notification.title,
+            body: notification.message,
             sound: 'default',
             color: '#01ffff',
             icon: ICON_PUSH,
@@ -51,9 +44,9 @@ export class PushNotificationService {
           .messaging()
           .sendToDevice(registrationToken, payload, options);
         if (response) {
-          console.log('Successfully sent message:', response);
+          console.log('[ENVIO DE PUSH EXITOSO AL CLIENTE] => ', response);
         } else {
-          console.log('Error sending message:');
+          console.log('[ERROR AL ENVIAR PUSH AL CLIENTE]');
         }
         await app.delete();
         return response;
@@ -95,9 +88,12 @@ export class PushNotificationService {
           .messaging()
           .sendToDevice(registrationToken, payload, options);
         if (response) {
-          console.log('Successfully sent message:', response);
+          console.log(
+            '[ENVIO DE PUSH DE CONFIRMACION ENTREGA EXITOSO] => ',
+            response,
+          );
         } else {
-          console.log('Error sending message:');
+          console.log('[ERROR AL ENVIAR PUSH DE CONFIRMACION ENTREGA]');
         }
         await app.delete();
         return response;
@@ -127,13 +123,13 @@ export class PushNotificationService {
         const messages: MulticastMessage = {
           notification: {
             title: '¡Nuevo pedido disponible!',
-            body: '¡Atención, repartidor! Un nuevo pedido acaba de llegar a la aplicación de delivery Ahí-Llego Repartidor. Ingresa a la app de para aceptar el pedido y conocer la dirección y los detalles del pedido.',
+            body: '¡Atención, repartidor! Un nuevo pedido listo para recoger acaba de llegar a la aplicación de delivery Ahí-Llego Repartidor. Ingresa a la app de para aceptar el pedido y conocer la dirección y los detalles del pedido.',
           },
           android: {
             priority: 'high',
             notification: {
               title: '¡Nuevo pedido disponible!',
-              body: '¡Atención, repartidor! Un nuevo pedido acaba de llegar a la aplicación de delivery Ahí-Llego Repartidor. Ingresa a la app de para aceptar el pedido y conocer la dirección y los detalles del pedido.',
+              body: '¡Atención, repartidor! Un nuevo pedido listo para recoger acaba de llegar a la aplicación de delivery Ahí-Llego Repartidor. Ingresa a la app de para aceptar el pedido y conocer la dirección y los detalles del pedido.',
               sound: 'default',
               color: '#01ffff',
               icon: ICON_PUSH,
@@ -144,9 +140,12 @@ export class PushNotificationService {
 
         let response = await admin.messaging().sendMulticast(messages);
         if (response) {
-          console.log('Successfully sent message:', response);
+          console.log(
+            '[ENVIO DE PUSH EXITOSO A LOS REPARTIDORES] => ',
+            response,
+          );
         } else {
-          console.log('Error sending message:');
+          console.log('[ERROR AL ENVIAR PUSH A LOS REPARTIDORES]');
         }
         await app.delete();
         return response;
@@ -158,42 +157,50 @@ export class PushNotificationService {
     }
   }
 
-  handlerMessageByStatus(statusOrderId: string, deliveryMan: any) {
-    let result = {
-      title: '',
-      message: '',
-    };
-    switch (statusOrderId) {
-      case STATUS_ORDER_PENDING_ID:
-        result.title = 'Pedido Pendiente';
-        result.message = '';
-        break;
-      case STATUS_ORDER_PROCESSING_ID:
-        result.title = 'Confirmación de tu pedido';
-        result.message = `Hola, tu pedido ha sido confirmado. Nuestro repartidor ${deliveryMan.name} se encuentra en camino para recoger tu pedido. Por favor, mantente pendiente de tu teléfono.`;
-        break;
-      case STATUS_ORDER_ON_ROUTE_ID:
-        result.title = 'Tu pedido está en camino';
-        result.message =
-          '¡Hola! Queremos informarte que tu pedido se encuentra en camino. Por favor, mantente pendiente de tu teléfono.';
-        break;
-      case STATUS_ORDER_FINALIZED_ID:
-        result.title = 'Tu pedido ha sido entregado';
-        // result.message =
-        //   '¡Felicidades! Tu pedido ha sido entregado satisfactoriamente. Esperamos que disfrutes de tu pedido y Si gustas porfavor podrias calificar la atención del repartidor. ¡Gracias por elegir nuestro servicio de delivery!';
-        result.message =
-          '¡Felicidades! Tu pedido ha sido entregado satisfactoriamente. Esperamos que disfrutes de tu pedido. ¡Gracias por elegir nuestro servicio de delivery ahi-llego!';
-        break;
-      case STATUS_ORDER_CANCELLED_ID:
-        result.title = 'Pedido cancelado';
-        result.message =
-          'Lamentablemente, tu pedido ha sido cancelado. Te pedimos disculpas por cualquier inconveniente que esto pueda haber causado. Si tienes alguna pregunta o necesitas ayuda adicional, no dudes en contactarnos. ¡Gracias por elegir nuestro servicio de delivery';
-        break;
-      default:
-        result.title = 'Confirmación de tu pedido';
-        result.message = `Hola, tu pedido ha sido confirmado. Nuestro repartidor ${deliveryMan.name} se encuentra en camino para recoger tu pedido. Por favor, mantente pendiente de tu teléfono.`;
-        break;
+  async sendEnterpriseById(companyId: string) {
+    try {
+      const company = await this.companyService.findOne(companyId);
+
+      const userSession = await this.userSessionService.findOnebyUser(
+        company.userId,
+      );
+
+      if (userSession) {
+        let tokens = [userSession.tokenDevice];
+        if (tokens && tokens.length > 0) {
+          let app = this.connectionService.initializeFirebase();
+          const messages: MulticastMessage = {
+            notification: {
+              title: '¡Nuevo pedido disponible!',
+              body: `¡Atención, ${company.name}! Un nuevo pedido acaba de llegar a la aplicación de delivery Ahí-Llego Empresa. Ingresa a la app de para aceptar el confirmar y conocer los detalles del pedido.`,
+            },
+            android: {
+              priority: 'high',
+              notification: {
+                title: '¡Nuevo pedido disponible!',
+                body: `¡Atención, ${company.name}! Un nuevo pedido acaba de llegar a la aplicación de delivery Ahí-Llego Empresa. Ingresa a la app de para aceptar el confirmar y conocer los detalles del pedido.`,
+                sound: 'default',
+                color: '#01ffff',
+                icon: ICON_PUSH,
+              },
+            },
+            tokens: tokens,
+          };
+
+          let response = await admin.messaging().sendMulticast(messages);
+          if (response) {
+            console.log('[ENVIO DE PUSH EXITOS0 A LA EMPRESA] => ', response);
+          } else {
+            console.log('[ERROR AL ENVIAR PUSH A LA EMPRESA]');
+          }
+          await app.delete();
+          return response;
+        } else {
+          return null;
+        }
+      }
+    } catch (error) {
+      console.log('[ERROR sendToDeliveriesMan] => ', error);
     }
-    return result;
   }
 }

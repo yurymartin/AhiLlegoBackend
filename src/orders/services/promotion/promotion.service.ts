@@ -6,10 +6,8 @@ import { CreatePromotionDto } from '../../dtos/promotion.dto';
 import { Order } from '../../schemas/order.schema';
 import {
   PROMOTION_TYPE_FIRST_DELIVERY_FREE,
-  STATUS_ORDER_FINALIZED_ID,
-  STATUS_ORDER_ON_ROUTE_ID,
-  STATUS_ORDER_PENDING_ID,
-  STATUS_ORDER_PROCESSING_ID,
+  STATUS_ORDER_ID_COMPLETED,
+  STATUS_ORDER_ID_DELIVERED,
 } from '../../../common/constants';
 
 @Injectable()
@@ -47,10 +45,8 @@ export class PromotionService {
       const orders = await this.orderModel.findOne({
         userId: new Types.ObjectId(userId),
         $or: [
-          { statusOrderId: new Types.ObjectId(STATUS_ORDER_PENDING_ID) },
-          { statusOrderId: new Types.ObjectId(STATUS_ORDER_PROCESSING_ID) },
-          { statusOrderId: new Types.ObjectId(STATUS_ORDER_ON_ROUTE_ID) },
-          { statusOrderId: new Types.ObjectId(STATUS_ORDER_FINALIZED_ID) },
+          { statusOrderId: new Types.ObjectId(STATUS_ORDER_ID_DELIVERED) },
+          { statusOrderId: new Types.ObjectId(STATUS_ORDER_ID_COMPLETED) },
         ],
       });
       if (orders) {

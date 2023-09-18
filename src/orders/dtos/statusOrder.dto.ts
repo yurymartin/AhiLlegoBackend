@@ -5,7 +5,7 @@ export class CreateStatusOrderDto {
   @IsPositive()
   @IsNotEmpty()
   @ApiProperty()
-  readonly step: number;
+  readonly header: number;
 
   @IsString()
   @IsNotEmpty()

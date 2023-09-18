@@ -8,6 +8,7 @@ import {
   IsNumber,
   IsArray,
   IsObject,
+  IsNumberString,
 } from 'class-validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 
@@ -109,6 +110,11 @@ export class CreateCompanyDto {
   @IsNotEmpty()
   @ApiProperty()
   readonly documentNumber: string;
+
+  @IsNumberString()
+  @IsNotEmpty()
+  @ApiProperty()
+  readonly approximateTimePrepare: string;
 }
 
 export class UpdateCompanyDto extends PartialType(CreateCompanyDto) {}

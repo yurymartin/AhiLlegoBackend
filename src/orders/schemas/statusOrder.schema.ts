@@ -5,8 +5,8 @@ import { Document } from 'mongoose';
   timestamps: true,
 })
 export class StatusOrder extends Document {
-  @Prop({ required: true, unique: true })
-  step: number;
+  @Prop({ required: true })
+  header: number;
 
   @Prop({ required: true, unique: true })
   name: string;

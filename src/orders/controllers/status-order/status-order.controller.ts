@@ -30,10 +30,10 @@ export class StatusOrderController {
     return await this.statusOrderService.findOne(id);
   }
 
-  @Get('/step/:step')
-  async finOneByStep(@Param('step') step: string | number) {
-    return await this.statusOrderService.findByStep(step);
-  }
+  // @Get('/step/:step')
+  // async finOneByStep(@Param('step') step: string | number) {
+  //   return await this.statusOrderService.findByStep(step);
+  // }
 
   @Post()
   async create(@Body() payload: CreateStatusOrderDto) {

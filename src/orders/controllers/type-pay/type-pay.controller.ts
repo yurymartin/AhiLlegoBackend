@@ -6,12 +6,16 @@ import {
   Body,
   Put,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { TypePayService } from './../../services/type-pay/type-pay.service';
 import { CreateTypePayDto, UpdateTypePayDto } from './../../dtos/typePay.dto';
 import { MongoIdPipe } from '../../../common/pipe/mongo-id/mongo-id.pipe';
+import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { Public } from '../../../auth/decorators/public.decorator';
 
+// @UseGuards(JwtAuthGuard)§
 @ApiTags('type-pay')
 @Controller('type-pay')
 export class TypePayController {

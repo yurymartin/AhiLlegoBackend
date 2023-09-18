@@ -45,6 +45,9 @@ export class Company extends Document {
   @Prop({ default: { startTime: null, endTime: null } })
   schedule: Schedule;
 
+  @Prop({ default: 5 })
+  approximateTimePrepare: number;
+
   @Prop({ type: Types.ObjectId, ref: BusinessLineDetail.name, required: true })
   businessLineDetailId: BusinessLineDetail | Types.ObjectId;
 

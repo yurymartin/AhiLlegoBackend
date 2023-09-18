@@ -24,6 +24,12 @@ export class AuthController {
     return this.authService.loginDeliveryMan(data);
   }
 
+  @Post('login/enterprise')
+  loginEnterprise(@Body() data: CreateLoginDeliveryManDto) {
+    return this.authService.loginEnterprise(data);
+  }
+
+  // @UseGuards(AuthGuard('local'))
   @Post('signin/customer')
   loginCustomer(@Body() data: CreateSignInCustomerDto) {
     return this.authService.signInCustomer(data);

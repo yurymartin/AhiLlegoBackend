@@ -18,6 +18,7 @@ import { UsersModule } from '../users/users.module';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { BcryptService } from './services/bcrypt/bcrypt.service';
+import { CompaniesModule } from '../companies/companies.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { BcryptService } from './services/bcrypt/bcrypt.service';
         schema: UserSessionSchema,
       },
     ]),
+    CompaniesModule,
     UsersModule,
     PassportModule,
     JwtModule.registerAsync({

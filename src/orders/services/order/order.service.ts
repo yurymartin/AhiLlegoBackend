@@ -20,15 +20,26 @@ import { OrderDetailService } from '../order-detail/order-detail.service';
 import {
   COMMISSION_APP_PERCENTAGE,
   COMMISSION_DEALER_PERCENTAGE,
-  STEP_STATUS_PENDING,
   PROFILE_DELIVERY_MAN_ID,
-  STATUS_ORDER_PENDING_ID,
-  STATUS_ORDER_PROCESSING_ID,
-  STATUS_ORDER_ON_ROUTE_ID,
-  STATUS_ORDER_FINALIZED_ID,
-  STATUS_ORDER_CANCELLED_ID,
-  PROMOTION_TYPE_FIRST_DELIVERY_FREE,
-  PROMOTION_TYPE_DELIVERY_FREE,
+  STATUS_ORDER_ID_ORDER_PLACED,
+  STATUS_ORDER_ID_DRIVER_ASSIGNED,
+  STATUS_ORDER_ID_ORDER_READY,
+  STATUS_ORDER_ID_IN_PREPARATION,
+  STATUS_ORDER_ID_CONFIRMED,
+  STATUS_ORDER_ID_CANCELED_BY_CUSTOMER,
+  STATUS_ORDER_ID_COMPLETED,
+  HEADER_ORDERS_IN_PREPARATION,
+  HEADER_ORDERS_IN_DELIVERY,
+  HEADER_ORDERS_CANCELED,
+  HEADER_ORDERS_IN_FINALIZED,
+  STATUS_ORDER_ID_ON_THE_WAY,
+  STATUS_ORDER_ID_DELIVERED,
+  STATUS_ORDER_ID_ORDER_PICKED_UP,
+  STATUS_ORDER_ID_REASSIGNED_TO_ANOTHER_DRIVER,
+  STATUS_ORDER_ID_ORDER_REJECTED_BY_STORE,
+  STATUS_ORDER_ID_CANCELED_FOR_EXTERNAL_REASONS,
+  STATUS_ORDER_ID_CANCELED_BY_DRIVER,
+  STATUS_ORDER_ID_CANCELED_BY_STORE,
 } from '../../../common/constants';
 import { AddressService } from '../../../addresses/services/address/address.service';
 import {
@@ -43,10 +54,10 @@ import { AddressCompanyService } from '../../../addresses/services/address-compa
 import { catchError, lastValueFrom, map } from 'rxjs';
 import { DistanceAmountService } from '../../../addresses/services/distance-amount/distance-amount.service';
 import { MapsService } from '../../../google/services/maps/maps.service';
-import { Promotion } from '../../schemas/promotion.schema';
 import { PromotionService } from '../promotion/promotion.service';
 
 const IGV_PORCENTAGE = 0.18;
+const IMPORT_GAIN_PRODUCT = 1;
 
 @Injectable()
 export class OrderService {
@@ -129,6 +140,7 @@ export class OrderService {
     }
 
     let detail = await this.orderDetailService.findByOrderId(order._id);
+
     let response = {
       order: order,
       detail: detail,
@@ -137,8 +149,10 @@ export class OrderService {
     return response;
   }
 
-  async findAllAvailable() {
-    let status = await this.statusOrderService.findByStep(1);
+  async getAllAvailableForDeliveryMan() {
+    let status = await this.statusOrderService.findOne(
+      STATUS_ORDER_ID_IN_PREPARATION,
+    );
     let orders = await this.orderModel
       .find({ statusOrderId: status._id })
       .sort({ date: -1 })
@@ -180,6 +194,46 @@ export class OrderService {
     return orders;
   }
 
+  async getAvailableEnterprise(companyId: string) {
+    let company = await this.companyService.findOne(companyId);
+
+    let orders = await this.orderModel
+      .find({
+        $and: [
+          { companyId: company._id },
+          { statusOrderId: new Types.ObjectId(STATUS_ORDER_ID_ORDER_PLACED) },
+        ],
+      })
+      .sort({ date: -1 })
+      .populate(
+        'companyId statusOrderId deliveryManId typePayId userId',
+        '-createdAt -updatedAt -__v -password -profileId',
+      )
+      .select('-createdAt -updatedAt -__v')
+      .exec();
+    return orders;
+  }
+
+  async getStatusOrderAndCompanyId(statusOrderId: string, companyId: string) {
+    let company = await this.companyService.findOne(companyId);
+
+    let orders = await this.orderModel
+      .find({
+        $and: [
+          { companyId: company._id },
+          { statusOrderId: new Types.ObjectId(statusOrderId) },
+        ],
+      })
+      .sort({ date: -1 })
+      .populate(
+        'companyId statusOrderId deliveryManId typePayId userId',
+        '-createdAt -updatedAt -__v -password -profileId',
+      )
+      .select('-createdAt -updatedAt -__v')
+      .exec();
+    return orders;
+  }
+
   async getPendingByDeliveryManId(deliveryManId: string) {
     let user = await this.userService.findOne(deliveryManId);
 
@@ -189,9 +243,66 @@ export class OrderService {
           { deliveryManId: user._id },
           {
             $or: [
-              { statusOrderId: new Types.ObjectId(STATUS_ORDER_PENDING_ID) },
-              { statusOrderId: new Types.ObjectId(STATUS_ORDER_PROCESSING_ID) },
-              { statusOrderId: new Types.ObjectId(STATUS_ORDER_ON_ROUTE_ID) },
+              {
+                statusOrderId: new Types.ObjectId(
+                  STATUS_ORDER_ID_DRIVER_ASSIGNED,
+                ),
+              },
+              {
+                statusOrderId: new Types.ObjectId(
+                  STATUS_ORDER_ID_ORDER_PICKED_UP,
+                ),
+              },
+              {
+                statusOrderId: new Types.ObjectId(STATUS_ORDER_ID_ON_THE_WAY),
+              },
+              {
+                statusOrderId: new Types.ObjectId(STATUS_ORDER_ID_ON_THE_WAY),
+              },
+            ],
+          },
+        ],
+      })
+      .sort({ date: -1 })
+      .populate(
+        'companyId statusOrderId deliveryManId typePayId userId',
+        '-createdAt -updatedAt -__v -password -profileId',
+      )
+      .select('-createdAt -updatedAt -__v')
+      .exec();
+    return orders;
+  }
+
+  async getPendingByCompanyId(companyId: string) {
+    const company = await this.companyService.findOne(companyId);
+
+    let orders = await this.orderModel
+      .find({
+        $and: [
+          { companyId: company._id },
+          {
+            $or: [
+              {
+                statusOrderId: new Types.ObjectId(STATUS_ORDER_ID_CONFIRMED),
+              },
+              {
+                statusOrderId: new Types.ObjectId(
+                  STATUS_ORDER_ID_IN_PREPARATION,
+                ),
+              },
+              {
+                statusOrderId: new Types.ObjectId(STATUS_ORDER_ID_ORDER_READY),
+              },
+              {
+                statusOrderId: new Types.ObjectId(
+                  STATUS_ORDER_ID_DRIVER_ASSIGNED,
+                ),
+              },
+              {
+                statusOrderId: new Types.ObjectId(
+                  STATUS_ORDER_ID_ORDER_PICKED_UP,
+                ),
+              },
             ],
           },
         ],
@@ -214,7 +325,7 @@ export class OrderService {
 
     let orders = await this.orderModel.find({
       deliveryManId: user._id,
-      statusOrderId: new Types.ObjectId(STATUS_ORDER_FINALIZED_ID),
+      statusOrderId: new Types.ObjectId(STATUS_ORDER_ID_COMPLETED),
       dateDelivery: { $gte: dateCurrentMonth, $lte: lastDateOfMonth },
     });
     let amountEarnings = 0;
@@ -248,8 +359,8 @@ export class OrderService {
     let comissionApp = deliveryAmount * COMMISSION_APP_PERCENTAGE;
     let commissionDeliveryMan = deliveryAmount * COMMISSION_DEALER_PERCENTAGE;
 
-    let statusOrder = await this.statusOrderService.findByStep(
-      STEP_STATUS_PENDING,
+    let statusOrder = await this.statusOrderService.findOne(
+      STATUS_ORDER_ID_ORDER_PLACED,
     );
 
     //? ***************** MANEJAR LAS PROMOCIONES *****************
@@ -266,7 +377,7 @@ export class OrderService {
 
     //? ***************** FINAL MANEJAR LAS PROMOCIONES *****************
 
-    let dateNow = format(new Date(), 'yyyy-dd-MM HH:mm:ss');
+    let dateNow = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
     let bodyOrder = {
       amount: 0,
       amountProducts: 0,
@@ -276,6 +387,7 @@ export class OrderService {
       comissionApp: 0,
       commissionDeliveryMan: 0,
       discount: 0,
+      amountPayEnteprise: 0,
       userId: user._id,
       deliveryManId: null,
       promotionId: promotionId,
@@ -300,6 +412,8 @@ export class OrderService {
     };
     let amountDetail: number = 0;
     let amountTotal: number = 0;
+    let profitAhillego: number = 0;
+
     for (const item of data.details) {
       let product = await this.productService.findOne(item.productId);
       const { price } = product;
@@ -307,11 +421,15 @@ export class OrderService {
 
       const discount = product.discount || 0;
 
+      profitAhillego = profitAhillego + Number(quantity) * IMPORT_GAIN_PRODUCT;
+
       amountDetail = (Number(price) - Number(discount)) * Number(quantity);
       bodyOrderDetail.productId = product._id;
       bodyOrderDetail.quantity = quantity;
       bodyOrderDetail.price = price;
       bodyOrderDetail.amount = amountDetail.toFixed(2);
+      bodyOrderDetail.amountEnterprise =
+        Number(amountDetail) - Number(quantity) * IMPORT_GAIN_PRODUCT;
       bodyOrderDetail.comment = comment;
       amountTotal = amountTotal + amountDetail;
       await this.orderDetailService.create(bodyOrderDetail);
@@ -348,6 +466,7 @@ export class OrderService {
       comissionApp: comissionApp.toFixed(2),
       commissionDeliveryMan: commissionDeliveryMan.toFixed(2),
       discount: discount,
+      amountPayEnteprise: (amountProducts - profitAhillego).toFixed(2),
     };
 
     this.logger.log('[bodyUpdate] => ', bodyUpdate);
@@ -366,7 +485,10 @@ export class OrderService {
     );
 
     try {
-      let sendPushs = await this.pushNotificationService.sendToDeliveriesMan();
+      // let sendPushs = await this.pushNotificationService.sendToDeliveriesMan();
+      let sendPushs = await this.pushNotificationService.sendEnterpriseById(
+        company._id,
+      );
     } catch (error) {
       console.log('ERROR PUSH =>', error);
     }
@@ -387,8 +509,10 @@ export class OrderService {
       throw new NotFoundException(`No se encontro el pedido`);
     }
 
-    let step = await this.statusOrderService.findByStep(2);
-    body.statusOrderId = step._id;
+    let statusOrder = await this.statusOrderService.findOne(
+      STATUS_ORDER_ID_DRIVER_ASSIGNED,
+    );
+    body.statusOrderId = statusOrder._id;
 
     let ordersPending = await this.getPendingByDeliveryManId(user._id);
     if (ordersPending.length > 0) {
@@ -397,7 +521,10 @@ export class OrderService {
       );
     }
 
-    if (String(order.statusOrderId) !== STATUS_ORDER_PENDING_ID) {
+    if (
+      String(order.statusOrderId) !== STATUS_ORDER_ID_ORDER_READY &&
+      String(order.statusOrderId) !== STATUS_ORDER_ID_IN_PREPARATION
+    ) {
       throw new BadRequestException(`EL Pedido no encuentra disponible`);
     }
     if (order.deliveryManId) {
@@ -410,17 +537,18 @@ export class OrderService {
       new: true,
     });
 
-    let client = await this.userService.findOne(order.userId.toString());
-
     if (!ordetUpdate) {
       throw new InternalServerErrorException('Error al actualizar pedido');
     }
 
-    await this.pushNotificationService.sendPushNotificationToDeviceByStatus(
-      client,
-      user,
-      step._id,
-    );
+    try {
+      await this.pushNotificationService.sendPushNotificationToDeviceByStatus(
+        order.userId,
+        String(statusOrder._id),
+      );
+    } catch (ex) {
+      console.log('[ERROR AL ENVIAR PUSH ] => ', ex);
+    }
 
     return ordetUpdate;
   }
@@ -432,12 +560,21 @@ export class OrderService {
       throw new NotFoundException('No existe el pedido');
     }
 
-    let deliveryMan = await this.userService.findOne(order.deliveryManId);
-    let status = await this.statusOrderService.findOne(data.statusOrderId);
-    bodyUpdate.statusOrderId = status._id;
-    let client = await this.userService.findOne(String(order.userId));
+    let statusCurrent = await this.statusOrderService.findOne(
+      order.statusOrderId,
+    );
 
-    if (String(data.statusOrderId) === STATUS_ORDER_FINALIZED_ID) {
+    if (Number(statusCurrent.header) === HEADER_ORDERS_CANCELED) {
+      throw new BadRequestException(
+        `Lamentamos informarte que el pedido fue cancelado y ya no esta disponible.`,
+      );
+    }
+
+    if (Number(statusCurrent.header) === HEADER_ORDERS_IN_FINALIZED) {
+      throw new BadRequestException(`El pedido se ya fue finalizado.`);
+    }
+
+    if (String(data.statusOrderId) === STATUS_ORDER_ID_COMPLETED) {
       if (!order.checkDeliveredClient) {
         throw new BadRequestException(
           `Para poder finalizar el pedido necesitas que el cliente confirme que se le fue entregado el pedido correctamente.`,
@@ -446,18 +583,23 @@ export class OrderService {
       bodyUpdate.dateDelivery = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
     }
 
-    if (String(order.statusOrderId._id) === STATUS_ORDER_CANCELLED_ID) {
-      throw new BadRequestException(`El pedido se encuentra cancelado.`);
+    if (data.statusOrderId === STATUS_ORDER_ID_CANCELED_BY_CUSTOMER) {
+      if (
+        statusCurrent.header == HEADER_ORDERS_IN_PREPARATION ||
+        statusCurrent.header == HEADER_ORDERS_IN_DELIVERY
+      ) {
+        throw new BadRequestException(
+          `El pedido ya fue confirmado y se encuentra en proceso de entrega por este motivo no se puede cancelar. Gracias por entender`,
+        );
+      }
     }
 
-    if (
-      data.statusOrderId === STATUS_ORDER_CANCELLED_ID &&
-      String(order.statusOrderId._id) !== STATUS_ORDER_PENDING_ID
-    ) {
-      throw new BadRequestException(
-        `El pedido ya fue confirmado y se encuentra en proceso de entrega por este motivo no se puede cancelar. Gracias por entender`,
-      );
+    if (data.statusOrderId === STATUS_ORDER_ID_CONFIRMED) {
+      data.statusOrderId = STATUS_ORDER_ID_IN_PREPARATION;
+      bodyUpdate.dateTimeConfirmed = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
     }
+
+    bodyUpdate.statusOrderId = new Types.ObjectId(data.statusOrderId);
 
     let ordetUpdate = await this.orderModel.findByIdAndUpdate(
       order._id,
@@ -468,12 +610,39 @@ export class OrderService {
       throw new InternalServerErrorException('Error al actualizar  pedido');
     }
 
-    if (String(data.statusOrderId) !== STATUS_ORDER_FINALIZED_ID) {
-      await this.pushNotificationService.sendPushNotificationToDeviceByStatus(
-        client,
-        deliveryMan,
-        data.statusOrderId,
-      );
+    try {
+      if (
+        String(data.statusOrderId) === STATUS_ORDER_ID_ORDER_READY ||
+        String(data.statusOrderId) === STATUS_ORDER_ID_IN_PREPARATION
+      ) {
+        await this.pushNotificationService.sendToDeliveriesMan();
+      }
+    } catch (ex) {
+      console.log('[ERROR AL ENVIAR PUSH AL CLIENTE] => ', ex);
+    }
+
+    try {
+      if (
+        String(data.statusOrderId) === STATUS_ORDER_ID_CONFIRMED ||
+        String(data.statusOrderId) === STATUS_ORDER_ID_IN_PREPARATION ||
+        String(data.statusOrderId) === STATUS_ORDER_ID_DRIVER_ASSIGNED ||
+        String(data.statusOrderId) === STATUS_ORDER_ID_ON_THE_WAY ||
+        String(data.statusOrderId) === STATUS_ORDER_ID_CANCELED_BY_STORE ||
+        String(data.statusOrderId) === STATUS_ORDER_ID_CANCELED_BY_DRIVER ||
+        String(data.statusOrderId) ===
+          STATUS_ORDER_ID_CANCELED_FOR_EXTERNAL_REASONS ||
+        String(data.statusOrderId) ===
+          STATUS_ORDER_ID_ORDER_REJECTED_BY_STORE ||
+        String(data.statusOrderId) ===
+          STATUS_ORDER_ID_REASSIGNED_TO_ANOTHER_DRIVER
+      ) {
+        await this.pushNotificationService.sendPushNotificationToDeviceByStatus(
+          order.userId,
+          data.statusOrderId,
+        );
+      }
+    } catch (ex) {
+      console.log('[ERROR AL ENVIAR PUSH AL CLIENTE] => ', ex);
     }
 
     return ordetUpdate;
