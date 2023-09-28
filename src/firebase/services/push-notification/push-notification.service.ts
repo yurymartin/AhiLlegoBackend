@@ -203,4 +203,42 @@ export class PushNotificationService {
       console.log('[ERROR sendToDeliveriesMan] => ', error);
     }
   }
+
+  async sendToArrayTokens(tokens: Array<any>, title: string, message: string) {
+    try {
+      if (tokens && tokens.length > 0) {
+        let app = this.connectionService.initializeFirebase();
+        const messages: MulticastMessage = {
+          notification: {
+            title: title,
+            body: message,
+          },
+          android: {
+            priority: 'high',
+            notification: {
+              title: title,
+              body: message,
+              sound: 'default',
+              color: '#01ffff',
+              icon: ICON_PUSH,
+            },
+          },
+          tokens: tokens,
+        };
+
+        let response = await admin.messaging().sendMulticast(messages);
+        if (response) {
+          console.log('[ENVIO MASIVO DE PUSH POR PERFIL] => ', response);
+        } else {
+          console.log('[ERROR MASIVO DE PUSH POR PERFIL]');
+        }
+        await app.delete();
+        return response;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.log('[ERROR sendToDeliveriesMan] => ', error);
+    }
+  }
 }

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import { Profile } from '../../schemas/profile.schema';
 import { CreateProfileDto, UpdateProfileDto } from '../../dtos/profile.dto';
@@ -22,7 +22,7 @@ export class ProfileService {
 
   async findOne(id: string) {
     const profile = await this.profileModel
-      .findOne({ _id: id })
+      .findOne({ _id: new Types.ObjectId(id) })
       .select('-createdAt -updatedAt -__v')
       .exec();
     if (!profile) {

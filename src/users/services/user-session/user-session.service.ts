@@ -26,6 +26,13 @@ export class UserSessionService {
     return userSession;
   }
 
+  async findByArrayUserIds(arrayIds: Array<any>): Promise<UserSession[]> {
+    const userSession = await this.userSessionModel
+      .find({ userId: { $in: arrayIds } })
+      .exec();
+    return userSession;
+  }
+
   async findOnebyUser(userId: string | any): Promise<UserSession> {
     const userSession = await this.userSessionModel
       .findOne({ userId: new Types.ObjectId(userId) })

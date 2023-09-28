@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User } from './../../schemas/user.schema';
 
 import { CreateUserDto, UpdateUserDto } from './../../dtos/user.dto';
@@ -47,6 +47,15 @@ export class UserService {
       );
     }
     return userSearch;
+  }
+
+  async findByProfileId(profileId: string | any): Promise<User[]> {
+    let profile = await this.profileService.findOne(profileId);
+    let users = await this.userModel
+      .find({ profileId: profile._id })
+      .select('-password -createdAt -updatedAt -__v')
+      .exec();
+    return users;
   }
 
   async findAllDeliveryMan(): Promise<User[]> {
