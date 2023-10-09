@@ -721,6 +721,12 @@ export class OrderService {
       throw new NotFoundException(`No se encontro el pedido`);
     }
 
+    if (order.checkDeliveredClient) {
+      throw new BadRequestException(
+        'La order ya se encuentra confirmada por el cliente',
+      );
+    }
+
     if (order.discountCodeId) {
       const discountCode = await this.discountCodeService.getById(
         order.discountCodeId,
