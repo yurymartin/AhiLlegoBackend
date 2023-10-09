@@ -5,6 +5,7 @@ import { User } from '../../users/schemas/user.schema';
 import { StatusOrder } from './statusOrder.schema';
 import { TypePay } from './typePay.schema';
 import { Promotion } from './promotion.schema';
+import { DiscountCode } from './discountCode.schema';
 
 export class Coordinates extends Document {
   @Prop()
@@ -62,6 +63,9 @@ export class Order extends Document {
 
   @Prop({ type: Types.ObjectId, ref: Promotion.name, default: null })
   promotionId: Promotion | Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: DiscountCode.name, default: null })
+  discountCodeId: DiscountCode | Types.ObjectId;
 
   @Prop({ default: null })
   address: string;

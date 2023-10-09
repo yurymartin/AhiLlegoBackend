@@ -40,6 +40,8 @@ import {
   STATUS_ORDER_ID_CANCELED_FOR_EXTERNAL_REASONS,
   STATUS_ORDER_ID_CANCELED_BY_DRIVER,
   STATUS_ORDER_ID_CANCELED_BY_STORE,
+  TYPE_DISCOUNT_CODE_QUANTITY,
+  TYPE_DISCOUNT_CODE_PERCENTAGE,
 } from '../../../common/constants';
 import { AddressService } from '../../../addresses/services/address/address.service';
 import {
@@ -55,6 +57,10 @@ import { catchError, lastValueFrom, map } from 'rxjs';
 import { DistanceAmountService } from '../../../addresses/services/distance-amount/distance-amount.service';
 import { MapsService } from '../../../google/services/maps/maps.service';
 import { PromotionService } from '../promotion/promotion.service';
+import { DiscountCodeService } from '../discount-code/discount-code.service';
+import { CreateCreditDto } from 'src/orders/dtos/credit.dto';
+import { CreditService } from '../credit/credit.service';
+import { UpdateUserDto } from 'src/users/dtos/user.dto';
 
 const IGV_PORCENTAGE = 0.18;
 const IMPORT_GAIN_PRODUCT = 1;
@@ -76,6 +82,8 @@ export class OrderService {
     private readonly distanceAmountService: DistanceAmountService,
     private readonly pushNotificationService: PushNotificationService,
     private readonly promotionService: PromotionService,
+    private readonly discountCodeService: DiscountCodeService,
+    private readonly creditService: CreditService,
   ) {}
 
   private readonly logger = new Logger(OrderService.name);
@@ -391,6 +399,7 @@ export class OrderService {
       userId: user._id,
       deliveryManId: null,
       promotionId: promotionId,
+      discountCodeId: null,
       statusOrderId: statusOrder._id,
       typePayId: typePay._id,
       companyId: company._id,
@@ -419,7 +428,7 @@ export class OrderService {
       const { price } = product;
       const { quantity, comment } = item;
 
-      const discount = product.discount || 0;
+      const discount: any = product.discount || 0;
 
       profitAhillego = profitAhillego + Number(quantity) * IMPORT_GAIN_PRODUCT;
 
@@ -444,21 +453,74 @@ export class OrderService {
       credit: 0,
     };
 
+    //? ***************** MANEJAR CODIGO DE DESCUENTO *****************
+    let discountCodeId = null;
+    if (data.discountCodeId) {
+      const discountCode = await this.discountCodeService.getActiveById(
+        String(data.discountCodeId),
+      );
+      discountCodeId = discountCode._id;
+      console.log('[discountCode] =>', discountCode);
+      if (discountCode.type === TYPE_DISCOUNT_CODE_PERCENTAGE) {
+        discount = Number(amountProducts) * (Number(discountCode.value) / 100);
+        discount = Number(Number(discount).toFixed(2));
+        // amountTotal = Number(amountTotal) - Number(discount);
+      } else {
+        if (Number(discountCode.value) >= Number(amountTotal)) {
+          discount = discount + amountTotal;
+          amountTotal = 0;
+        } else {
+          discount = discountCode.value;
+          // amountTotal = Number(amountProducts) - Number(discountCode.value);/
+        }
+      }
+
+      const bodyUpdateCode = {
+        quantityAvailable: Number(discountCode.quantityAvailable) - 1 ?? 0,
+      };
+
+      const createCredit: CreateCreditDto = {
+        code: discountCode.code,
+        userId: user._id,
+        discountCodeId: discountCode._id,
+        status: true,
+      };
+      const newCredit = this.creditService.create(createCredit);
+
+      const discountCodeUpdate = await this.discountCodeService.update(
+        discountCode._id,
+        bodyUpdateCode,
+      );
+
+      console.log('[discount ONE] =>', discount);
+      console.log('[amountProducts ONE] =>', amountProducts);
+      console.log('[amountTotal ONE] =>', amountTotal);
+
+      console.log('****************************************');
+    }
+
+    //? ***************** FINAL MANEJAR CODIGO DE DESCUENTO *****************
+
     if (Number(user.credit) > 0) {
       if (Number(user.credit) >= Number(amountTotal)) {
         discount = discount + amountTotal;
         amountTotal = 0;
-        bodyUpdateCredit.credit = Number(user.credit) - Number(amountProducts);
+        bodyUpdateCredit.credit = Number(user.credit) - Number(amountTotal);
       } else {
         discount = discount + Number(user.credit);
-        amountTotal = Number(amountProducts) - Number(user.credit);
+        amountTotal = Number(amountTotal) - Number(discount);
         bodyUpdateCredit.credit = 0;
       }
     }
 
+    console.log('[discount TWO] =>', discount);
+    console.log('[amountProducts TWO] =>', amountProducts);
+    console.log('[amountTotal TWO] =>', amountTotal);
+
     let igv: number = amountTotal * IGV_PORCENTAGE;
 
     let bodyUpdate = {
+      discountCodeId: discountCodeId,
       amount: (Number(amountTotal) - Number(igv)).toFixed(2),
       amountProducts: amountProducts.toFixed(2),
       igv: igv.toFixed(2),
@@ -659,9 +721,27 @@ export class OrderService {
       throw new NotFoundException(`No se encontro el pedido`);
     }
 
+    if (order.discountCodeId) {
+      const discountCode = await this.discountCodeService.getById(
+        order.discountCodeId,
+      );
+      const representativePercentage =
+        (Number(order.amountProducts) *
+          Number(discountCode.representativePercentage)) /
+        100;
+      const updateUserCredit: UpdateUserDto = {
+        credit: Number(representativePercentage.toFixed(2)),
+      };
+      const userUpdate = await this.userService.update(
+        discountCode.userId.toString(),
+        updateUserCredit,
+      );
+    }
+
     let ordetUpdate = await this.orderModel.findByIdAndUpdate(
       order._id,
-      { checkDeliveredClient: true },
+      // { checkDeliveredClient: true },
+      { checkDeliveredClient: false },
       { new: true },
     );
 

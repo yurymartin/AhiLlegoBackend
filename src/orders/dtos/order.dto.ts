@@ -16,6 +16,7 @@ import { Company } from '../../companies/schemas/company.schema';
 import { TypePay } from '../schemas/typePay.schema';
 import { User } from '../../users/schemas/user.schema';
 import { Address } from '../../addresses/schemas/address.schema';
+import { DiscountCode } from '../schemas/discountCode.schema';
 
 class DetailItem {
   @IsMongoId()
@@ -51,6 +52,11 @@ export class CreateOrderDto {
   @IsNotEmpty()
   @ApiProperty()
   addressId: Address | string;
+
+  @IsOptional()
+  @IsNotEmpty()
+  @ApiProperty()
+  discountCodeId: DiscountCode | string;
 
   @IsArray()
   @ValidateNested({ each: true })

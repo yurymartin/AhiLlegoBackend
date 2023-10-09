@@ -1,24 +1,24 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   InternalServerErrorException,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CreateCreditDto } from '../../dtos/credit.dto';
 import { Credit } from '../../schemas/credit.schema';
 import { DiscountCodeService } from '../discount-code/discount-code.service';
 import { UserService } from '../../../users/services/user/user.service';
 import { differenceInDays, format } from 'date-fns';
-import { DiscountCode } from '../../schemas/discountCode.schema';
 
 @Injectable()
 export class CreditService {
   constructor(
     @InjectModel(Credit.name)
     private readonly creditModel: Model<Credit>,
-    @InjectModel(DiscountCode.name)
-    private readonly discountCodeModel: Model<DiscountCode>,
+    @Inject(forwardRef(() => DiscountCodeService))
     private readonly discountCodeService: DiscountCodeService,
     private readonly userService: UserService,
   ) {}
@@ -26,6 +26,20 @@ export class CreditService {
   async findAll() {
     let credits = await this.creditModel.find({}).exec();
     return credits;
+  }
+
+  async getByDiscountCodeIdAndUserId(
+    discountCodeId: string,
+    userId: string,
+  ): Promise<Credit> {
+    let credit = await this.creditModel
+      .findOne({
+        discountCodeId: new Types.ObjectId(discountCodeId),
+        userId: new Types.ObjectId(userId),
+        status: true,
+      })
+      .exec();
+    return credit;
   }
 
   async create(data: CreateCreditDto) {
@@ -41,6 +55,12 @@ export class CreditService {
     let user = await this.userService.findOne(String(data.userId));
 
     let discountCode = await this.discountCodeService.findByCode(data.code);
+
+    if (discountCode && Number(discountCode.typeUseId) === 2) {
+      throw new BadRequestException(
+        'Este codigo solo se puede usar al momento de confirmar un pedido.',
+      );
+    }
 
     let credit = await this.creditModel.findOne({
       userId: user._id,
@@ -73,10 +93,12 @@ export class CreditService {
     }
     const newQuantityAvailable = quantityAvailable - 1;
 
-    let updateAvariable = await this.discountCodeModel.findByIdAndUpdate(
+    const updatediscountCodeBody = {
+      quantityAvailable: newQuantityAvailable,
+    };
+    const updateAvariable = await this.discountCodeService.update(
       discountCode._id,
-      { quantityAvailable: newQuantityAvailable },
-      { new: true },
+      updatediscountCodeBody,
     );
 
     let valueCurrent = Number(user.credit || 0) + discountCode.value;
@@ -85,7 +107,7 @@ export class CreditService {
       credit: valueCurrent,
     };
 
-    let userUpdate = this.userService.update(user._id, bodyUpdate);
+    let userUpdate = await this.userService.update(user._id, bodyUpdate);
 
     let bodyCreate: any = {
       discountCodeId: discountCode._id,
