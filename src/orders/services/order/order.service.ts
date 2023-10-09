@@ -740,8 +740,7 @@ export class OrderService {
 
     let ordetUpdate = await this.orderModel.findByIdAndUpdate(
       order._id,
-      // { checkDeliveredClient: true },
-      { checkDeliveredClient: false },
+      { checkDeliveredClient: true },
       { new: true },
     );
 
