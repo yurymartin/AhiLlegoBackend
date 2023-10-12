@@ -443,35 +443,27 @@ export class OrderService {
       amountTotal = amountTotal + amountDetail;
       await this.orderDetailService.create(bodyOrderDetail);
     }
-    this.logger.log('[amountDetail] =>', amountDetail);
     let amountProducts: number = amountTotal;
-
     amountTotal = amountTotal + deliveryAmount;
-    this.logger.log('[amountTotal] =>', amountTotal);
 
-    let bodyUpdateCredit = {
-      credit: 0,
-    };
+    //? ***************** MANEJAR CODIGO DE DESCUENTO INICIO *****************
 
-    //? ***************** MANEJAR CODIGO DE DESCUENTO *****************
-    let discountCodeId = null;
+    let discountCodeId: any = null;
+    let discountCodeValue: number = 0;
     if (data.discountCodeId) {
       const discountCode = await this.discountCodeService.getActiveById(
         String(data.discountCodeId),
       );
       discountCodeId = discountCode._id;
-      console.log('[discountCode] =>', discountCode);
+      discountCodeValue = Number(discountCode.value);
       if (discountCode.type === TYPE_DISCOUNT_CODE_PERCENTAGE) {
-        discount = Number(amountProducts) * (Number(discountCode.value) / 100);
+        discount = Number(amountProducts) * (discountCodeValue / 100);
         discount = Number(Number(discount).toFixed(2));
-        // amountTotal = Number(amountTotal) - Number(discount);
       } else {
-        if (Number(discountCode.value) >= Number(amountTotal)) {
+        if (discountCodeValue >= Number(amountTotal)) {
           discount = discount + amountTotal;
-          amountTotal = 0;
         } else {
           discount = discountCode.value;
-          // amountTotal = Number(amountProducts) - Number(discountCode.value);/
         }
       }
 
@@ -491,31 +483,24 @@ export class OrderService {
         discountCode._id,
         bodyUpdateCode,
       );
-
-      console.log('[discount ONE] =>', discount);
-      console.log('[amountProducts ONE] =>', amountProducts);
-      console.log('[amountTotal ONE] =>', amountTotal);
-
-      console.log('****************************************');
     }
 
-    //? ***************** FINAL MANEJAR CODIGO DE DESCUENTO *****************
+    //? ***************** MANEJAR CODIGO DE DESCUENTO FINAL *****************
 
+    //? ***************** MANEJAR CREDITOS INICIO ****************
+    let bodyUpdateCredit = {
+      credit: 0,
+    };
     if (Number(user.credit) > 0) {
-      if (Number(user.credit) >= Number(amountTotal)) {
-        discount = discount + amountTotal;
-        amountTotal = 0;
-        bodyUpdateCredit.credit = Number(user.credit) - Number(amountTotal);
+      discount = Number(user.credit) + discount;
+      if (discount >= Number(amountTotal)) {
+        discount = amountTotal;
+        bodyUpdateCredit.credit = Number(discount) - Number(amountTotal);
       } else {
-        discount = discount + Number(user.credit);
-        amountTotal = Number(amountTotal) - Number(discount);
         bodyUpdateCredit.credit = 0;
       }
     }
-
-    console.log('[discount TWO] =>', discount);
-    console.log('[amountProducts TWO] =>', amountProducts);
-    console.log('[amountTotal TWO] =>', amountTotal);
+    //? ***************** MANEJAR CREDITOS FIN ****************
 
     let igv: number = amountTotal * IGV_PORCENTAGE;
 

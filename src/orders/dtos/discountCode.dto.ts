@@ -43,7 +43,7 @@ export class CreateDiscountCodeDto {
   readonly typeUseId: number;
 
   @IsString()
-  @IsOptional()
+  @IsNotEmpty()
   @ApiProperty()
   readonly description: string;
 
@@ -56,6 +56,11 @@ export class CreateDiscountCodeDto {
   @IsNotEmpty()
   @ApiProperty()
   readonly quantityAvailable: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  @ApiProperty()
+  readonly representativePercentage: number;
 
   @IsDateString({ strict: true } as any)
   @IsNotEmpty()

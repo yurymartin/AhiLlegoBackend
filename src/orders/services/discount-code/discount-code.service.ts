@@ -75,6 +75,12 @@ export class DiscountCodeService {
       })
       .exec();
 
+    if (!discountCode) {
+      throw new NotFoundException(
+        'El código de descuento ya no se encuentra disponible.',
+      );
+    }
+
     const credit = await this.creditService.getByDiscountCodeIdAndUserId(
       discountCode._id,
       userId,
@@ -86,11 +92,6 @@ export class DiscountCodeService {
       );
     }
 
-    if (!discountCode) {
-      throw new NotFoundException(
-        'El código de descuento ya no se encuentra disponible.',
-      );
-    }
     return discountCode;
   }
 
