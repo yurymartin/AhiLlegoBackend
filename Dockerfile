@@ -7,4 +7,4 @@ COPY . .
 EXPOSE 3000
 RUN npm run build
 
-CMD [ "npm", "run", "start:qa" ]
+CMD [ "npm", "run", "start:prod" ]
