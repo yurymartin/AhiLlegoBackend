@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { UserSessionService } from '../../../users/services/user-session/user-session.service';
 import { ConnectionService } from '../connection/connection.service';
 import * as admin from 'firebase-admin';
-import { PROFILE_DELIVERY_MAN_ID } from '../../../common/constants';
+import {
+  PROFILE_ADMIN_ID,
+  PROFILE_DELIVERY_MAN_ID,
+} from '../../../common/constants';
 import { MulticastMessage } from 'firebase-admin/lib/messaging/messaging-api';
 import { handlerByStatusId } from '../../../common/helper/notificationOrder';
 import { CompanyService } from '../../../companies/services/company/company.service';
@@ -201,6 +204,58 @@ export class PushNotificationService {
       }
     } catch (error) {
       console.log('[ERROR sendToDeliveriesMan] => ', error);
+    }
+  }
+
+  async sendUsersAdministrators() {
+    try {
+      let usersSession = await this.userSessionService.findByProfile(
+        PROFILE_ADMIN_ID,
+      );
+      let tokens = [];
+      if (usersSession && usersSession.length > 0) {
+        for (const userSession of usersSession) {
+          if (userSession && userSession.tokenDevice) {
+            tokens.push(userSession.tokenDevice);
+          }
+        }
+      }
+      if (tokens && tokens.length > 0) {
+        let app = this.connectionService.initializeFirebase();
+        const messages: MulticastMessage = {
+          notification: {
+            title: '¡Nuevo pedido disponible!',
+            body: '¡Atención, Administrador! Un nuevo pedido acaba de llegar a la aplicación Ahí-Llego Administrador. Ingresa a la app de para aceptar el confirmar y conocer los detalles del pedido.',
+          },
+          android: {
+            priority: 'high',
+            notification: {
+              title: '¡Nuevo pedido disponible!',
+              body: '¡Atención, Administrador! Un nuevo pedido acaba de llegar a la aplicación Ahí-Llego Administrador. Ingresa a la app de para aceptar el confirmar y conocer los detalles del pedido.',
+              sound: 'default',
+              color: '#01ffff',
+              icon: ICON_PUSH,
+            },
+          },
+          tokens: tokens,
+        };
+
+        let response = await admin.messaging().sendMulticast(messages);
+        if (response) {
+          console.log(
+            '[ENVIO DE PUSH EXITOSO A LOS ADMINISTRADORES] => ',
+            response,
+          );
+        } else {
+          console.log('[ERROR AL ENVIAR PUSH A LOS ADMINISTRADORES]');
+        }
+        await app.delete();
+        return response;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.log('[ERROR sendUsersAdministrators] => ', error);
     }
   }
 

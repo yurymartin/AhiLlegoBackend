@@ -13,6 +13,7 @@ import { CreateRegisterCustomerDto } from '../../dtos/registerCustomer.dto';
 import { UserSessionService } from '../../../users/services/user-session/user-session.service';
 import { CreateSignInCustomerDto } from '../../dtos/signInCustomer.dto';
 import {
+  PROFILE_ADMIN_ID,
   PROFILE_CUSTOMER_ID,
   PROFILE_DELIVERY_MAN_ID,
   PROFILE_ENTERPRISE_ID,
@@ -35,6 +36,42 @@ export class AuthService {
   ) {}
 
   private readonly logger = new Logger(AuthService.name);
+
+  async loginAdministrator(data: CreateLoginDeliveryManDto): Promise<any> {
+    this.logger.log('[loginAdministrator DATA] =>', data);
+    let user = await this.userService.findOneByDocumentNumber(
+      data.documentNumber,
+    );
+    if (!user || String(user.profileId) !== PROFILE_ADMIN_ID) {
+      throw new BadRequestException('Credenciales Incorrectas');
+    }
+    if (!user.status) {
+      throw new BadRequestException('El usuario se encuentra inactivo');
+    }
+    let validatePassword = this.bcryptService.validatePassword(
+      String(data.password),
+      String(user.password),
+    );
+    if (!validatePassword) {
+      throw new BadRequestException('Credenciales Incorrectas');
+    }
+    let tokenJwt = this.generateJWT(user);
+    let userSession = await this.userSessionService.findOnebyUser(user._id);
+    let newSession: any = null;
+    let body: any = {
+      token: tokenJwt,
+      tokenDevice: data.tokenDevice || '',
+      status: true,
+      profileId: user.profileId,
+    };
+    if (userSession) {
+      newSession = await this.userSessionService.update(userSession._id, body);
+    } else {
+      body.userId = user._id;
+      newSession = await this.userSessionService.create(body);
+    }
+    return newSession;
+  }
 
   async loginDeliveryMan(data: CreateLoginDeliveryManDto) {
     this.logger.log('[loginDeliveryMan DATA] =>', data);

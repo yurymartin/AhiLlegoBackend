@@ -62,8 +62,6 @@ export class CompanyService {
 
     const dayCurrentId = getDay(new Date());
     const timeCurrent = format(new Date(), 'HH:mm:ss');
-    console.log('[dayCurrentId] =>', dayCurrentId);
-    console.log('[timeCurrent] =>', timeCurrent);
 
     let companies = await this.companyModel
       .find({

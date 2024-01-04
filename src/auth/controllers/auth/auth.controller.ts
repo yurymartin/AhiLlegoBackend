@@ -24,6 +24,11 @@ export class AuthController {
     return this.authService.loginDeliveryMan(data);
   }
 
+  @Post('login/administrator')
+  loginAdministrator(@Body() data: CreateLoginDeliveryManDto) {
+    return this.authService.loginAdministrator(data);
+  }
+
   @Post('login/enterprise')
   loginEnterprise(@Body() data: CreateLoginDeliveryManDto) {
     return this.authService.loginEnterprise(data);

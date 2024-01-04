@@ -532,13 +532,19 @@ export class OrderService {
     );
 
     try {
-      // let sendPushs = await this.pushNotificationService.sendToDeliveriesMan();
       let sendPushs = await this.pushNotificationService.sendEnterpriseById(
         company._id,
       );
     } catch (error) {
-      console.log('ERROR PUSH =>', error);
+      console.log('[ERROR PUSH EMPRESA] =>', error);
     }
+
+    try {
+      let sendAd = await this.pushNotificationService.sendUsersAdministrators();
+    } catch (error) {
+      console.log('[ERROR PUSH ADMINISTRADOR] =>', error);
+    }
+
     this.logger.log('[RESPONSE ORDER] =>', orderResult);
     return orderResult;
   }
